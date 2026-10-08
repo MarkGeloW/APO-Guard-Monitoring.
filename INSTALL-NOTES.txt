@@ -1,0 +1,119 @@
+APO Guard Monitoring System
+Install notes for another PC
+================================
+
+What you need first
+-------------------
+- Windows PC
+- Laragon (or PHP 8.3, Composer, MySQL, and Node.js installed separately)
+- PHP 8.2 or newer. PHP 8.3 is the version this project expects.
+- Composer
+- Node.js 20 or newer (includes npm)
+- MySQL running on port 3306
+- Optional: Flutter, only if you will run the guard mobile app
+
+Copy the project folder to the other PC. Do not copy these folders if you want a clean install:
+- vendor
+- node_modules
+- apo_guard_app/build
+- apo_guard_app/.dart_tool
+
+Keep the source files, including .env.example.
+
+
+1. Start MySQL
+--------------
+Open Laragon and click Start All.
+Make sure MySQL is running. If another database program is using port 3306, stop that program first.
+
+
+2. Create the database
+----------------------
+Database name: apomonitoringsystem
+User: root
+Password: leave blank if you are using Laragon's default MySQL
+
+In Laragon, open HeidiSQL or the MySQL terminal and run:
+
+CREATE DATABASE apomonitoringsystem CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+
+3. Environment file
+-------------------
+In the project folder, copy .env.example and rename the copy to .env.
+
+Set these values:
+
+APP_NAME="APO Guard"
+APP_URL=http://127.0.0.1:8010
+APP_TIMEZONE=Asia/Manila
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=apomonitoringsystem
+DB_USERNAME=root
+DB_PASSWORD=
+
+If MySQL has a password, put it in DB_PASSWORD.
+
+
+4. Install the website
+----------------------
+Open a terminal inside the project folder and run these commands one by one:
+
+composer install
+php artisan key:generate
+php artisan migrate --seed
+php artisan storage:link
+npm install
+npm run build
+
+If Composer complains that PHP is 8.2 instead of 8.3, use this instead of the first command:
+
+composer install --ignore-platform-reqs
+
+The --seed step loads demo accounts. Skip it with "php artisan migrate" only if this PC should start with an empty database.
+
+
+5. Open the website
+-------------------
+php artisan serve --host=0.0.0.0 --port=8010
+
+On the same PC, open:
+http://127.0.0.1:8010
+
+Demo logins. Password for all of them is: password
+
+Admin:      admin@aposecurity.com
+Supervisor: supervisor@aposecurity.com
+Guard app:  guard1@aposecurity.com
+            guard2@aposecurity.com
+            guard3@aposecurity.com
+            guard4@aposecurity.com
+
+
+6. Guard mobile app
+-------------------
+Install Flutter and Android Studio on the PC that will build the app.
+
+In the apo_guard_app folder, run:
+
+flutter pub get
+flutter run
+
+On the phone, set the server URL to this PC's address, not 127.0.0.1.
+Example: http://192.168.1.20:8010
+
+The phone and the PC must be on the same Wi-Fi.
+Windows Firewall must allow port 8010.
+
+
+7. Everyday use
+---------------
+1. Start Laragon (MySQL must be running).
+2. In the project folder, run: php artisan serve --host=0.0.0.0 --port=8010
+3. Open http://127.0.0.1:8010
+
+You only repeat steps 2 through 4 when setting up a new PC.
+After that, step 7 is enough.
