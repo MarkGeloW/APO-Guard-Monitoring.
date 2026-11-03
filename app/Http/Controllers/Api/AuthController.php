@@ -21,7 +21,19 @@ class AuthController extends Controller
 
         $user = User::where('email', $validated['email'])->first();
 
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+        if (! $user) {
+            if (User::onlyTrashed()->where('email', $validated['email'])->exists()) {
+                throw ValidationException::withMessages([
+                    'email' => ['This account has been archived. Contact your administrator.'],
+                ]);
+            }
+
+            throw ValidationException::withMessages([
+                'email' => ['The provided credentials are incorrect.'],
+            ]);
+        }
+
+        if (! Hash::check($validated['password'], $user->password)) {
             throw ValidationException::withMessages([
                 'email' => ['The provided credentials are incorrect.'],
             ]);

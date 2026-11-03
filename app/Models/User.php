@@ -9,8 +9,10 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -19,7 +21,7 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
     protected function casts(): array
     {
@@ -29,6 +31,27 @@ class User extends Authenticatable
             'role' => UserRole::class,
             'is_active' => 'boolean',
         ];
+    }
+
+    public function revokeAccess(): void
+    {
+        $this->tokens()->delete();
+        $this->forceFill(['remember_token' => null])->saveQuietly();
+
+        DB::table('sessions')->where('user_id', $this->id)->delete();
+    }
+
+    public function archive(): void
+    {
+        $this->forceFill(['is_active' => false])->saveQuietly();
+        $this->revokeAccess();
+        $this->delete();
+    }
+
+    public function restoreAccount(): void
+    {
+        $this->restore();
+        $this->forceFill(['is_active' => true])->saveQuietly();
     }
 
     public function securityPersonnel(): HasOne

@@ -19,8 +19,11 @@ class UserController extends Controller
     public function index(Request $request): Response
     {
         $search = $request->query('search');
+        $showArchived = $request->boolean('archived');
 
-        $users = User::query()
+        $usersQuery = $showArchived ? User::onlyTrashed() : User::query();
+
+        $users = $usersQuery
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($query) use ($search) {
                     $query->where('name', 'like', "%{$search}%")
@@ -36,12 +39,14 @@ class UserController extends Controller
             'admins' => User::where('role', UserRole::Admin)->count(),
             'supervisors' => User::where('role', UserRole::Supervisor)->count(),
             'guards' => User::where('role', UserRole::Guard)->count(),
+            'archived' => User::onlyTrashed()->count(),
         ];
 
         return Inertia::render('Users/Index', [
             'users' => $users->map(fn (User $user) => InertiaPageData::userRow($user))->values(),
             'stats' => $stats,
             'search' => $search ?? '',
+            'archived' => $showArchived,
         ]);
     }
 
@@ -54,7 +59,7 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'email', 'max:255', ...self::uniqueLoginEmail()],
             'phone' => ['nullable', 'string', 'max:20'],
             'role' => ['required', Rule::enum(UserRole::class)],
             'password' => ['required', 'confirmed', Password::defaults()],
@@ -78,7 +83,7 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'email' => ['required', 'email', 'max:255', ...self::uniqueLoginEmail($user->id)],
             'phone' => ['nullable', 'string', 'max:20'],
             'role' => ['required', Rule::enum(UserRole::class)],
             'password' => ['nullable', 'confirmed', Password::defaults()],
@@ -94,6 +99,10 @@ class UserController extends Controller
 
         $user->update($data);
 
+        if (! $user->is_active) {
+            $user->revokeAccess();
+        }
+
         return redirect()->route('users.index')->with('success', 'User updated successfully.');
     }
 
@@ -105,21 +114,58 @@ class UserController extends Controller
 
         $user->update(['is_active' => ! $user->is_active]);
 
+        if (! $user->is_active) {
+            $user->revokeAccess();
+        }
+
         $message = $user->is_active
             ? 'User activated successfully.'
-            : 'User deactivated successfully.';
+            : 'User deactivated. All open sessions and app logins were signed out.';
 
         return back()->with('success', $message);
+    }
+
+    public function restore(int $id): RedirectResponse
+    {
+        $account = User::onlyTrashed()->findOrFail($id);
+        $account->restoreAccount();
+
+        return redirect()
+            ->route('users.index')
+            ->with('success', 'Account restored. The user can sign in again.');
     }
 
     public function destroy(User $user): RedirectResponse
     {
         if ($user->id === auth()->id()) {
-            return back()->with('error', 'You cannot delete your own account.');
+            return back()->with('error', 'You cannot archive your own account.');
         }
 
-        $user->delete();
+        $user->archive();
 
-        return redirect()->route('users.index')->with('success', 'User deleted successfully.');
+        return redirect()
+            ->route('users.index', ['archived' => 1])
+            ->with('success', 'Account archived. Login access was removed, and the record can be restored later.');
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    private static function uniqueLoginEmail(?int $ignoreId = null): array
+    {
+        return [
+            'bail',
+            function (string $attribute, mixed $value, \Closure $fail) use ($ignoreId) {
+                $archived = User::onlyTrashed()
+                    ->where('email', $value)
+                    ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
+                    ->exists();
+
+                if ($archived) {
+                    $fail('This email belongs to an archived account. Restore it from User Management instead of creating a new login.');
+                }
+            },
+            Rule::unique('users', 'email')->ignore($ignoreId),
+        ];
     }
 }

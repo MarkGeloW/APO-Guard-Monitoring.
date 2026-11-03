@@ -72,6 +72,7 @@ class InertiaPageData
                 default => 'bg-emerald-500',
             },
             'is_active' => $user->is_active,
+            'is_archived' => $user->trashed(),
             'joined' => $user->joinedLabel(),
         ];
     }

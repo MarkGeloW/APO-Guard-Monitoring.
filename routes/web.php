@@ -18,12 +18,13 @@ Route::get('/', function () {
         : redirect()->route('login');
 });
 
-Route::middleware(['auth', 'role:admin,supervisor'])->group(function () {
+Route::middleware(['auth', 'active', 'role:admin,supervisor'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
 
     Route::middleware('role:admin')->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
         Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+        Route::patch('/users/{id}/restore', [UserController::class, 'restore'])->name('users.restore');
     });
 
     Route::middleware('role:admin,supervisor')->group(function () {

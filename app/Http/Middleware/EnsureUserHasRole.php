@@ -13,12 +13,12 @@ class EnsureUserHasRole
     {
         $user = $request->user();
 
-        if (! $user || ! $user->is_active) {
+        if (! $user) {
             if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json(['message' => 'Your account is inactive or unauthorized.'], 403);
+                return response()->json(['message' => 'Unauthenticated.'], 401);
             }
 
-            abort(403, 'Your account is inactive or unauthorized.');
+            abort(401, 'Unauthenticated.');
         }
 
         $allowedRoles = array_map(

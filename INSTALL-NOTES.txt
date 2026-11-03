@@ -75,6 +75,12 @@ composer install --ignore-platform-reqs
 
 The --seed step loads demo accounts. Skip it with "php artisan migrate" only if this PC should start with an empty database.
 
+If seeding stops with "Duplicate entry 'admin@aposecurity.com'", the demo admin is already in the database. Log in with that account, or wipe and load demo data again:
+
+php artisan migrate:fresh --seed
+
+migrate:fresh deletes every table in apomonitoringsystem, then recreates them. Use it only on this demo database.
+
 
 5. Open the website
 -------------------

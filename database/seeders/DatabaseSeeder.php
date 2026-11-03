@@ -16,6 +16,13 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        if (User::where('email', 'admin@aposecurity.com')->exists()) {
+            $this->command?->warn('Demo accounts already exist. Skipping seed.');
+            $this->command?->warn('To start over, run: php artisan migrate:fresh --seed');
+
+            return;
+        }
+
         $admin = User::create([
             'name' => 'System Administrator',
             'email' => 'admin@aposecurity.com',

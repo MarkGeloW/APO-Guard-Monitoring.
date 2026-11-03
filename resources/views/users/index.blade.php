@@ -143,14 +143,14 @@
                                                 {{ $user->is_active ? 'Deactivate' : 'Activate' }}
                                             </button>
                                         </form>
-                                        <form action="{{ route('users.destroy', $user) }}" method="POST" data-swal-confirm="This user account will be permanently removed." data-swal-title="Delete user?" data-swal-type="delete">
+                                        <form action="{{ route('users.destroy', $user) }}" method="POST" data-swal-confirm="This archives the account and signs them out. History is kept and you can restore later." data-swal-title="Archive account?" data-swal-confirm-text="Archive" data-swal-confirm-color="#dc2626" data-swal-icon="warning">
                                             @csrf
                                             @method('DELETE')
                                             <button
                                                 type="submit"
                                                 class="inline-flex items-center rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 transition hover:bg-red-50"
                                             >
-                                                Delete
+                                                Archive
                                             </button>
                                         </form>
                                     @endif

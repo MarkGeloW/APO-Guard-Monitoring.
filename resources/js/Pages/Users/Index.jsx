@@ -2,7 +2,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import StatCard from '@/Components/StatCard';
 import StatusBadge from '@/Components/StatusBadge';
-import { confirmAction, confirmDelete } from '@/lib/sweetalert';
+import { confirmAction } from '@/lib/sweetalert';
 
 const breadcrumb = (
     <>
@@ -15,14 +15,18 @@ const breadcrumb = (
     </>
 );
 
-export default function Index({ users = [], stats = {}, search = '' }) {
+export default function Index({ users = [], stats = {}, search = '', archived = false }) {
     const { auth } = usePage().props;
     const currentUserId = auth.user.id;
 
     const submitSearch = (e) => {
         e.preventDefault();
         const data = new FormData(e.target);
-        router.get('/users', { search: data.get('search') }, { preserveState: true });
+        router.get(
+            '/users',
+            { search: data.get('search'), archived: archived ? 1 : 0 },
+            { preserveState: true },
+        );
     };
 
     return (
@@ -30,7 +34,9 @@ export default function Index({ users = [], stats = {}, search = '' }) {
             <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                     <h2 className="text-2xl font-extrabold uppercase tracking-wide text-slate-900">User Management</h2>
-                    <p className="mt-1 text-sm text-slate-500">Manage system accounts, roles, and access permissions.</p>
+                    <p className="mt-1 text-sm text-slate-500">
+                        Manage login accounts. Archive removes access without deleting history.
+                    </p>
                 </div>
                 <a
                     href="/users/create"
@@ -87,6 +93,27 @@ export default function Index({ users = [], stats = {}, search = '' }) {
                 />
             </div>
 
+            <div className="mb-4 flex flex-wrap gap-2">
+                <button
+                    type="button"
+                    onClick={() => router.get('/users', { search, archived: 0 }, { preserveState: true })}
+                    className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide ${
+                        !archived ? 'bg-[#14233a] text-white' : 'bg-white text-slate-500 ring-1 ring-slate-200'
+                    }`}
+                >
+                    Active accounts
+                </button>
+                <button
+                    type="button"
+                    onClick={() => router.get('/users', { search, archived: 1 }, { preserveState: true })}
+                    className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide ${
+                        archived ? 'bg-[#14233a] text-white' : 'bg-white text-slate-500 ring-1 ring-slate-200'
+                    }`}
+                >
+                    Archived ({stats.archived ?? 0})
+                </button>
+            </div>
+
             <form onSubmit={submitSearch} className="mb-6">
                 <div className="relative">
                     <svg
@@ -127,7 +154,7 @@ export default function Index({ users = [], stats = {}, search = '' }) {
                             {users.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="px-5 py-12 text-center text-slate-500">
-                                        No users found matching your search.
+                                        {archived ? 'No archived accounts.' : 'No users found matching your search.'}
                                     </td>
                                 </tr>
                             ) : (
@@ -149,7 +176,9 @@ export default function Index({ users = [], stats = {}, search = '' }) {
                                             <StatusBadge label={user.role_label} tone={user.role_tone} />
                                         </td>
                                         <td className="px-5 py-4">
-                                            {user.is_active ? (
+                                            {user.is_archived ? (
+                                                <StatusBadge label="Archived" tone="off_duty" />
+                                            ) : user.is_active ? (
                                                 <StatusBadge label="Active" tone="active" />
                                             ) : (
                                                 <StatusBadge label="Inactive" tone="off_duty" />
@@ -158,13 +187,34 @@ export default function Index({ users = [], stats = {}, search = '' }) {
                                         <td className="px-5 py-4 text-slate-600">{user.joined}</td>
                                         <td className="px-5 py-4">
                                             <div className="flex flex-wrap items-center justify-end gap-2">
-                                                <a
-                                                    href={`/users/${user.id}/edit`}
-                                                    className="inline-flex items-center rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-bold text-blue-600 transition hover:bg-blue-50"
-                                                >
-                                                    Edit
-                                                </a>
-                                                {user.id !== currentUserId && (
+                                                {!user.is_archived && (
+                                                    <a
+                                                        href={`/users/${user.id}/edit`}
+                                                        className="inline-flex items-center rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-bold text-blue-600 transition hover:bg-blue-50"
+                                                    >
+                                                        Edit
+                                                    </a>
+                                                )}
+                                                {user.is_archived ? (
+                                                    <button
+                                                        type="button"
+                                                        className="inline-flex items-center rounded-lg border border-emerald-200 px-3 py-1.5 text-xs font-bold text-emerald-700 transition hover:bg-emerald-50"
+                                                        onClick={async () => {
+                                                            if (
+                                                                await confirmAction({
+                                                                    title: 'Restore account?',
+                                                                    text: `${user.name} will be able to sign in again.`,
+                                                                    confirmText: 'Restore',
+                                                                    confirmColor: '#14233a',
+                                                                })
+                                                            ) {
+                                                                router.patch(`/users/${user.id}/restore`);
+                                                            }
+                                                        }}
+                                                    >
+                                                        Restore
+                                                    </button>
+                                                ) : user.id !== currentUserId && (
                                                     <>
                                                         <button
                                                             type="button"
@@ -174,7 +224,9 @@ export default function Index({ users = [], stats = {}, search = '' }) {
                                                                 if (
                                                                     await confirmAction({
                                                                         title: `${action} user?`,
-                                                                        text: `Are you sure you want to ${action.toLowerCase()} ${user.name}?`,
+                                                                        text: user.is_active
+                                                                            ? `${user.name} will be signed out of the website and the guard app.`
+                                                                            : `Are you sure you want to activate ${user.name}?`,
                                                                         confirmText: action,
                                                                         confirmColor: '#d97706',
                                                                     })
@@ -189,12 +241,20 @@ export default function Index({ users = [], stats = {}, search = '' }) {
                                                             type="button"
                                                             className="inline-flex items-center rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-600 transition hover:bg-red-50"
                                                             onClick={async () => {
-                                                                if (await confirmDelete('Delete this user account?', 'Delete user?')) {
+                                                                if (
+                                                                    await confirmAction({
+                                                                        title: 'Archive account?',
+                                                                        text: 'This archives the account and signs them out. History is kept and you can restore later.',
+                                                                        confirmText: 'Archive',
+                                                                        confirmColor: '#dc2626',
+                                                                        icon: 'warning',
+                                                                    })
+                                                                ) {
                                                                     router.delete(`/users/${user.id}`);
                                                                 }
                                                             }}
                                                         >
-                                                            Delete
+                                                            Archive
                                                         </button>
                                                     </>
                                                 )}

@@ -65,8 +65,8 @@ class PersonnelController extends Controller
             'emergency_phone' => ['nullable', 'string', 'max:20'],
             'notes' => ['nullable', 'string'],
             'create_account' => ['boolean'],
-            'user_id' => ['nullable', 'exists:users,id'],
-            'account_email' => ['nullable', 'email', 'unique:users,email'],
+            'user_id' => ['nullable', Rule::exists('users', 'id')->whereNull('deleted_at')],
+            'account_email' => ['nullable', 'email', Rule::unique('users', 'email')],
             'account_password' => ['nullable', 'confirmed', Password::defaults()],
         ]);
 
@@ -74,7 +74,16 @@ class PersonnelController extends Controller
 
         if ($request->boolean('create_account') && ! $userId) {
             $request->validate([
-                'account_email' => ['required', 'email', 'unique:users,email'],
+                'account_email' => [
+                    'required',
+                    'email',
+                    function (string $attribute, mixed $value, \Closure $fail) {
+                        if (User::onlyTrashed()->where('email', $value)->exists()) {
+                            $fail('This email belongs to an archived account. Restore it from User Management instead of creating a new login.');
+                        }
+                    },
+                    Rule::unique('users', 'email'),
+                ],
                 'account_password' => ['required', 'confirmed', Password::defaults()],
             ]);
 
@@ -136,18 +145,27 @@ class PersonnelController extends Controller
             'emergency_contact' => ['nullable', 'string', 'max:255'],
             'emergency_phone' => ['nullable', 'string', 'max:20'],
             'notes' => ['nullable', 'string'],
-            'user_id' => ['nullable', 'exists:users,id'],
+            'user_id' => ['nullable', Rule::exists('users', 'id')->whereNull('deleted_at')],
         ]);
 
         $personnel->update($validated);
+
+        if (in_array($validated['status'], ['inactive'], true) && $personnel->user) {
+            $personnel->user->update(['is_active' => false]);
+            $personnel->user->revokeAccess();
+        }
 
         return redirect()->route('personnel.index')->with('success', 'Personnel record updated successfully.');
     }
 
     public function destroy(SecurityPersonnel $personnel): RedirectResponse
     {
+        if ($personnel->user) {
+            $personnel->user->archive();
+        }
+
         $personnel->delete();
 
-        return redirect()->route('personnel.index')->with('success', 'Personnel record deleted successfully.');
+        return redirect()->route('personnel.index')->with('success', 'Personnel record removed and the linked login was archived.');
     }
 }
