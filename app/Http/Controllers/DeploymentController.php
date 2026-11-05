@@ -38,7 +38,11 @@ class DeploymentController extends Controller
                 });
             })
             ->when($request->date, fn ($q, $date) => $q->whereDate('deployment_date', $date))
-            ->when($request->deployment_status, fn ($q, $status) => $q->where('status', $status))
+            ->when(
+                $request->filled('deployment_status'),
+                fn ($q) => $q->where('status', $request->deployment_status),
+                fn ($q) => $q->where('status', '!=', 'cancelled'),
+            )
             ->when($request->display_status === 'warning', fn ($q) => $q->whereHas('attendance', fn ($a) => $a->where('status', 'late')))
             ->when($request->display_status === 'active', fn ($q) => $q->whereHas('attendance', fn ($a) => $a
                 ->whereIn('status', ['present', 'late'])
@@ -97,7 +101,10 @@ class DeploymentController extends Controller
     public function create(): View
     {
         return view('deployments.create', [
-            'personnel' => SecurityPersonnel::where('status', 'active')->orderBy('last_name')->get(),
+            'personnel' => SecurityPersonnel::where('status', 'active')
+                ->whereNotNull('user_id')
+                ->orderBy('last_name')
+                ->get(),
             'locations' => Location::where('status', 'active')->orderBy('name')->get(),
         ]);
     }
@@ -105,14 +112,32 @@ class DeploymentController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'security_personnel_id' => ['required', 'exists:security_personnel,id'],
+            'security_personnel_id' => [
+                'required',
+                Rule::exists('security_personnel', 'id')
+                    ->where('status', 'active')
+                    ->whereNotNull('user_id')
+                    ->whereNull('deleted_at'),
+            ],
             'location_id' => ['required', 'exists:locations,id'],
             'deployment_date' => ['required', 'date'],
             'shift_start' => ['required', 'date_format:H:i'],
             'shift_end' => ['required', 'date_format:H:i', 'different:shift_start'],
             'status' => ['required', Rule::in(['scheduled', 'active', 'completed', 'cancelled'])],
             'notes' => ['nullable', 'string'],
+        ], [
+            'security_personnel_id.exists' => 'Only active personnel with a User Management account can be deployed.',
         ]);
+
+        $personnel = SecurityPersonnel::findOrFail($validated['security_personnel_id']);
+
+        if (! $personnel->hasFaceEnrolled()) {
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'security_personnel_id' => 'This guard must enroll their face in the mobile app before they can be deployed.',
+                ]);
+        }
 
         if ($overlap = Deployment::findOverlap(
             (int) $validated['security_personnel_id'],
@@ -139,10 +164,9 @@ class DeploymentController extends Controller
             'status' => 'pending',
         ]);
 
-        $personnel = SecurityPersonnel::find($deployment->security_personnel_id);
         $deployment->load('location');
 
-        if ($personnel?->user_id) {
+        if ($personnel->user_id) {
             SystemNotification::create([
                 'user_id' => $personnel->user_id,
                 'type' => 'deployment_assigned',
@@ -159,7 +183,10 @@ class DeploymentController extends Controller
     {
         return view('deployments.edit', [
             'deployment' => $deployment,
-            'personnel' => SecurityPersonnel::where('status', 'active')->orderBy('last_name')->get(),
+            'personnel' => SecurityPersonnel::where('status', 'active')
+                ->whereNotNull('user_id')
+                ->orderBy('last_name')
+                ->get(),
             'locations' => Location::where('status', 'active')->orderBy('name')->get(),
         ]);
     }
@@ -167,7 +194,13 @@ class DeploymentController extends Controller
     public function update(Request $request, Deployment $deployment): RedirectResponse
     {
         $validated = $request->validate([
-            'security_personnel_id' => ['required', 'exists:security_personnel,id'],
+            'security_personnel_id' => [
+                'required',
+                Rule::exists('security_personnel', 'id')
+                    ->where('status', 'active')
+                    ->whereNotNull('user_id')
+                    ->whereNull('deleted_at'),
+            ],
             'location_id' => ['required', 'exists:locations,id'],
             'deployment_date' => ['required', 'date'],
             'shift_start' => ['required', 'date_format:H:i'],

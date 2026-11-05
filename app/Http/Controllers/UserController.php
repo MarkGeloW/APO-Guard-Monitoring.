@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Enums\UserRole;
+use App\Models\SecurityPersonnel;
 use App\Models\User;
 use App\Http\Support\InertiaPageData;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -57,6 +59,9 @@ class UserController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $role = $request->input('role');
+        $isGuard = $role === UserRole::Guard->value;
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', ...self::uniqueLoginEmail()],
@@ -64,14 +69,52 @@ class UserController extends Controller
             'role' => ['required', Rule::enum(UserRole::class)],
             'password' => ['required', 'confirmed', Password::defaults()],
             'is_active' => ['boolean'],
+            'badge_number' => [
+                Rule::requiredIf($isGuard),
+                'nullable',
+                'string',
+                'max:50',
+                'unique:security_personnel,badge_number',
+            ],
+            'date_hired' => ['nullable', 'date'],
+        ], [
+            'badge_number.required' => 'Personnel ID is required when creating a Security Guard account.',
+            'badge_number.unique' => 'This Personnel ID is already assigned to another guard.',
         ]);
 
-        User::create([
-            ...$validated,
-            'is_active' => $request->boolean('is_active', true),
-        ]);
+        $user = DB::transaction(function () use ($request, $validated, $isGuard) {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'] ?? null,
+                'role' => $validated['role'],
+                'password' => $validated['password'],
+                'is_active' => $request->boolean('is_active', true),
+            ]);
 
-        return redirect()->route('users.index')->with('success', 'User created successfully.');
+            if ($isGuard) {
+                $nameParts = preg_split('/\s+/', trim($validated['name']), 2) ?: ['Guard', ''];
+
+                SecurityPersonnel::create([
+                    'user_id' => $user->id,
+                    'badge_number' => $validated['badge_number'],
+                    'first_name' => $nameParts[0] ?: 'Guard',
+                    'last_name' => $nameParts[1] ?? '',
+                    'email' => $validated['email'],
+                    'phone' => $validated['phone'] ?? null,
+                    'date_hired' => $validated['date_hired'] ?? now()->toDateString(),
+                    'status' => 'active',
+                ]);
+            }
+
+            return $user;
+        });
+
+        $message = $isGuard
+            ? 'Guard account created with Personnel ID. Ask the guard to enroll their face in the mobile app before Face In / Face Out.'
+            : 'User created successfully.';
+
+        return redirect()->route('users.index')->with('success', $message);
     }
 
     public function edit(User $user): View

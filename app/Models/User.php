@@ -45,6 +45,16 @@ class User extends Authenticatable
     {
         $this->forceFill(['is_active' => false])->saveQuietly();
         $this->revokeAccess();
+
+        $personnel = $this->securityPersonnel;
+        if ($personnel && ! $personnel->trashed()) {
+            $personnel->forceFill(['status' => 'inactive'])->saveQuietly();
+            $personnel->deployments()
+                ->whereIn('status', ['scheduled', 'active'])
+                ->update(['status' => 'cancelled']);
+            $personnel->delete();
+        }
+
         $this->delete();
     }
 
@@ -52,6 +62,12 @@ class User extends Authenticatable
     {
         $this->restore();
         $this->forceFill(['is_active' => true])->saveQuietly();
+
+        $personnel = SecurityPersonnel::onlyTrashed()->where('user_id', $this->id)->first();
+        if ($personnel) {
+            $personnel->restore();
+            $personnel->forceFill(['status' => 'active'])->saveQuietly();
+        }
     }
 
     public function securityPersonnel(): HasOne

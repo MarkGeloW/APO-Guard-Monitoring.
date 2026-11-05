@@ -95,14 +95,15 @@
                     <input type="date" name="date_hired" value="{{ old('date_hired', $personnel->date_hired?->format('Y-m-d')) }}" class="{{ $inputClass }}">
                 </div>
                 <div>
-                    <label class="{{ $labelClass }}">Linked Account</label>
-                    <select name="user_id" class="{{ $inputClass }}">
-                        <option value="">— None —</option>
+                    <label class="{{ $labelClass }}">Linked Account (required)</label>
+                    <select name="user_id" required class="{{ $inputClass }}">
+                        <option value="">Select a User Management account…</option>
                         @foreach($guardUsers as $user)
                             <option value="{{ $user->id }}" @selected(old('user_id', $personnel->user_id) == $user->id)>{{ $user->name }} ({{ $user->email }})</option>
                         @endforeach
                     </select>
-                    <p class="mt-1.5 text-xs text-slate-500">Links this profile to a guard mobile login.</p>
+                    @error('user_id')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    <p class="mt-1.5 text-xs text-slate-500">Please create an account first in User Management before adding personnel.</p>
                 </div>
                 <div>
                     <label class="{{ $labelClass }}">Emergency Contact</label>

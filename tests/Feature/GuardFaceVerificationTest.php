@@ -76,6 +76,53 @@ class GuardFaceVerificationTest extends TestCase
         \Carbon\Carbon::setTestNow();
     }
 
+    public function test_check_in_rejected_when_face_does_not_match_enrolled_profile(): void
+    {
+        Storage::fake('public');
+        \Carbon\Carbon::setTestNow(today()->setTime(10, 0));
+        $this->seed();
+
+        $guard = User::where('email', 'guard1@aposecurity.com')->firstOrFail();
+        $personnel = $guard->securityPersonnel;
+        $deployment = \App\Models\Deployment::where('security_personnel_id', $personnel->id)
+            ->whereDate('deployment_date', today())
+            ->firstOrFail();
+
+        $deployment->update([
+            'shift_start' => '06:00',
+            'shift_end' => '18:00',
+            'status' => 'scheduled',
+        ]);
+
+        \App\Models\Attendance::where('deployment_id', $deployment->id)->delete();
+
+        $token = $this->postJson('/api/v1/login', [
+            'email' => 'guard1@aposecurity.com',
+            'password' => 'password',
+            'device_name' => 'face-mismatch',
+        ])->json('token');
+
+        $this->withToken($token)
+            ->post('/api/v1/face/enroll', [
+                'face_image' => UploadedFile::fake()->image('enroll.jpg', 640, 640),
+                'face_signature' => $this->signature(),
+            ], ['Accept' => 'application/json'])
+            ->assertOk();
+
+        $this->withToken($token)
+            ->post('/api/v1/attendance/check-in', [
+                'deployment_id' => $deployment->id,
+                'latitude' => $deployment->location->latitude,
+                'longitude' => $deployment->location->longitude,
+                'face_image' => UploadedFile::fake()->image('wrong.jpg', 640, 640),
+                'face_signature' => $this->signature(0.5),
+            ], ['Accept' => 'application/json'])
+            ->assertStatus(422)
+            ->assertJsonPath('face_verified', false);
+
+        \Carbon\Carbon::setTestNow();
+    }
+
     public function test_check_in_rejected_when_face_not_enrolled(): void
     {
         $this->seed();

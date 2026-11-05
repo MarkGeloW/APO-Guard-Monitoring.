@@ -37,6 +37,21 @@
             <a href="{{ route('personnel.edit', $personnel) }}" class="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-300/30 hover:bg-blue-600">
                 Edit Profile
             </a>
+            <form
+                action="{{ route('personnel.destroy', $personnel) }}"
+                method="POST"
+                data-swal-confirm="This archives the personnel record, cancels open deployments, and archives the linked login. History is kept."
+                data-swal-title="Remove security personnel?"
+                data-swal-confirm-text="Remove"
+                data-swal-confirm-color="#dc2626"
+                data-swal-icon="warning"
+            >
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="inline-flex items-center rounded-xl border border-red-200 bg-white px-5 py-3 text-sm font-bold text-red-600 hover:bg-red-50">
+                    Remove Security Personnel
+                </button>
+            </form>
             <a href="{{ route('personnel.index') }}" class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">Back</a>
         </div>
     </div>

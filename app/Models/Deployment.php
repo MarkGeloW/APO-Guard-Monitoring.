@@ -334,7 +334,7 @@ class Deployment extends Model
 
     public function personnel(): BelongsTo
     {
-        return $this->belongsTo(SecurityPersonnel::class, 'security_personnel_id');
+        return $this->belongsTo(SecurityPersonnel::class, 'security_personnel_id')->withTrashed();
     }
 
     public function location(): BelongsTo

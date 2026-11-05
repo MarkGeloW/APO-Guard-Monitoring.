@@ -29,6 +29,7 @@ Route::middleware(['auth', 'active', 'role:admin,supervisor'])->group(function (
 
     Route::middleware('role:admin,supervisor')->group(function () {
         Route::resource('personnel', PersonnelController::class);
+        Route::patch('/personnel/{id}/restore', [PersonnelController::class, 'restore'])->name('personnel.restore');
         Route::resource('locations', LocationController::class)->except(['show']);
         Route::resource('deployments', DeploymentController::class)->except(['show']);
 

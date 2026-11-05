@@ -1,6 +1,7 @@
 import { Link, router } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import StatusBadge from '@/Components/StatusBadge';
+import { confirmAction } from '@/lib/sweetalert';
 
 const breadcrumb = (
     <>
@@ -44,16 +45,27 @@ function Pagination({ links = [] }) {
 }
 
 function personnelTone(person) {
+    if (person.is_archived) return 'off_duty';
     if (person.is_probation) return 'probation';
     if (person.status_label?.toLowerCase() === 'active') return 'active';
     return 'off_duty';
 }
 
-export default function Index({ personnel = { data: [], links: [] }, filters = {} }) {
+export default function Index({
+    personnel = { data: [], links: [] },
+    filters = {},
+    stats = {},
+}) {
+    const archived = Boolean(filters.archived);
+
     const submitSearch = (e) => {
         e.preventDefault();
         const data = new FormData(e.target);
-        router.get('/personnel', { search: data.get('search') }, { preserveState: true, replace: true });
+        router.get(
+            '/personnel',
+            { search: data.get('search'), archived: archived ? 1 : 0 },
+            { preserveState: true, replace: true },
+        );
     };
 
     return (
@@ -64,7 +76,8 @@ export default function Index({ personnel = { data: [], links: [] }, filters = {
                         Security Personnel
                     </h2>
                     <p className="mt-1 text-sm text-slate-500">
-                        Manage guard profiles, ranks, zones, and post assignments.
+                        Manage guard profiles linked to User Management accounts. Remove archives the record and cancels
+                        open deployments.
                     </p>
                 </div>
                 <Link
@@ -74,6 +87,27 @@ export default function Index({ personnel = { data: [], links: [] }, filters = {
                     <span className="text-lg leading-none">+</span>
                     Add Personnel
                 </Link>
+            </div>
+
+            <div className="mb-4 flex flex-wrap gap-2">
+                <button
+                    type="button"
+                    onClick={() => router.get('/personnel', { search: filters.search || '', archived: 0 }, { preserveState: true })}
+                    className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide ${
+                        !archived ? 'bg-[#14233a] text-white' : 'bg-white text-slate-500 ring-1 ring-slate-200'
+                    }`}
+                >
+                    Active ({stats.active ?? 0})
+                </button>
+                <button
+                    type="button"
+                    onClick={() => router.get('/personnel', { search: filters.search || '', archived: 1 }, { preserveState: true })}
+                    className={`rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wide ${
+                        archived ? 'bg-[#14233a] text-white' : 'bg-white text-slate-500 ring-1 ring-slate-200'
+                    }`}
+                >
+                    Archived ({stats.archived ?? 0})
+                </button>
             </div>
 
             <form onSubmit={submitSearch} className="mb-6">
@@ -92,7 +126,7 @@ export default function Index({ personnel = { data: [], links: [] }, filters = {
                         type="text"
                         name="search"
                         defaultValue={filters.search ?? ''}
-                        placeholder="Search by name or rank..."
+                        placeholder="Search by name or badge..."
                         className="w-full rounded-2xl border-0 bg-white py-4 pl-11 pr-4 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-400"
                     />
                 </div>
@@ -101,13 +135,17 @@ export default function Index({ personnel = { data: [], links: [] }, filters = {
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
                 {!personnel.data?.length ? (
                     <div className="col-span-full rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-16 text-center">
-                        <p className="text-slate-500">No security personnel found.</p>
-                        <Link
-                            href="/personnel/create"
-                            className="mt-4 inline-flex items-center text-sm font-semibold text-blue-500 hover:text-blue-600"
-                        >
-                            + Add your first guard
-                        </Link>
+                        <p className="text-slate-500">
+                            {archived ? 'No archived personnel.' : 'No security personnel found.'}
+                        </p>
+                        {!archived && (
+                            <Link
+                                href="/personnel/create"
+                                className="mt-4 inline-flex items-center text-sm font-semibold text-blue-500 hover:text-blue-600"
+                            >
+                                + Add your first guard
+                            </Link>
+                        )}
                     </div>
                 ) : (
                     personnel.data.map((person) => (
@@ -132,7 +170,7 @@ export default function Index({ personnel = { data: [], links: [] }, filters = {
                                         <p className="truncate font-bold text-slate-900">{person.name}</p>
                                         <p className="text-sm text-slate-500">
                                             {person.rank}
-                                            {person.face_enrolled ? ' · Face enrolled' : ''}
+                                            {person.face_enrolled ? ' · Face enrolled' : ' · Face not enrolled'}
                                         </p>
                                     </div>
                                 </div>
@@ -158,18 +196,60 @@ export default function Index({ personnel = { data: [], links: [] }, filters = {
                             </div>
 
                             <div className="mt-4 grid grid-cols-2 gap-3">
-                                <a
-                                    href={`/personnel/${person.id}`}
-                                    className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-                                >
-                                    View Profile
-                                </a>
-                                <a
-                                    href={`/deployments/create?security_personnel_id=${person.id}`}
-                                    className="inline-flex items-center justify-center rounded-xl bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-600 transition hover:bg-blue-100"
-                                >
-                                    Assign Post
-                                </a>
+                                {person.is_archived ? (
+                                    <button
+                                        type="button"
+                                        className="col-span-2 inline-flex items-center justify-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                                        onClick={async () => {
+                                            if (
+                                                await confirmAction({
+                                                    title: 'Restore personnel?',
+                                                    text: `${person.name} and their login account will be restored.`,
+                                                    confirmText: 'Restore',
+                                                    confirmColor: '#14233a',
+                                                })
+                                            ) {
+                                                router.patch(`/personnel/${person.id}/restore`);
+                                            }
+                                        }}
+                                    >
+                                        Restore
+                                    </button>
+                                ) : (
+                                    <>
+                                        <a
+                                            href={`/personnel/${person.id}`}
+                                            className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                                        >
+                                            View Profile
+                                        </a>
+                                        <a
+                                            href={`/deployments/create?security_personnel_id=${person.id}`}
+                                            className="inline-flex items-center justify-center rounded-xl bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-600 transition hover:bg-blue-100"
+                                        >
+                                            Assign Post
+                                        </a>
+                                        <button
+                                            type="button"
+                                            className="col-span-2 inline-flex items-center justify-center rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                                            onClick={async () => {
+                                                if (
+                                                    await confirmAction({
+                                                        title: 'Remove security personnel?',
+                                                        text: 'This archives the personnel record, cancels open deployments, and archives the linked login. History is kept.',
+                                                        confirmText: 'Remove',
+                                                        confirmColor: '#dc2626',
+                                                        icon: 'warning',
+                                                    })
+                                                ) {
+                                                    router.delete(`/personnel/${person.id}`);
+                                                }
+                                            }}
+                                        >
+                                            Remove Security Personnel
+                                        </button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     ))

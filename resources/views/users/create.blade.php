@@ -22,8 +22,11 @@
             email: {{ Js::from(old('email', '')) }},
             phone: {{ Js::from(old('phone', '')) }},
             role: {{ Js::from($defaultRole) }},
+            badge: {{ Js::from(old('badge_number', '')) }},
+            dateHired: {{ Js::from(old('date_hired', '')) }},
             active: true,
             roleLabels: {{ Js::from(collect($roles)->mapWithKeys(fn ($r) => [$r->value => $r->label()])) }},
+            get isGuard() { return this.role === 'guard' },
             get initials() {
                 const parts = (this.name || '').trim().split(/\s+/).filter(Boolean);
                 if (!parts.length) return 'SY';
@@ -90,9 +93,34 @@
                 Active account
             </label>
 
+            <div
+                x-show="isGuard"
+                x-cloak
+                class="space-y-4 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4"
+            >
+                <div>
+                    <p class="text-sm font-bold text-slate-900">Personnel credentials</p>
+                    <p class="mt-1 text-xs text-slate-600">
+                        Creating a Guard account also creates the linked personnel profile. Face registration is completed later in the APO Guard mobile app and is required for Face In / Face Out.
+                    </p>
+                </div>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="{{ $labelClass }}">Personnel ID / Badge Number</label>
+                        <input type="text" name="badge_number" class="{{ $inputClass }}" x-model="badge" :required="isGuard" value="{{ old('badge_number') }}" placeholder="e.g. SG-005">
+                        @error('badge_number')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="{{ $labelClass }}">Date Hired</label>
+                        <input type="date" name="date_hired" class="{{ $inputClass }}" x-model="dateHired" value="{{ old('date_hired') }}">
+                        @error('date_hired')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    </div>
+                </div>
+            </div>
+
             <div class="flex flex-wrap gap-3 border-t border-slate-100 pt-5">
                 <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-blue-500 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-300/30 hover:bg-blue-600">
-                    Create User
+                    <span x-text="isGuard ? 'Create Guard Account' : 'Create User'"></span>
                 </button>
                 <a href="{{ route('users.index') }}" class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">Cancel</a>
             </div>
@@ -125,9 +153,13 @@
                         <dt class="text-slate-500">Role</dt>
                         <dd class="font-semibold text-slate-900" x-text="roleLabel"></dd>
                     </div>
-                    <div class="flex justify-between gap-3">
+                    <div class="flex justify-between gap-3 border-b border-slate-100 pb-3">
                         <dt class="text-slate-500">Status</dt>
                         <dd class="font-semibold" :class="active ? 'text-emerald-600' : 'text-slate-500'" x-text="active ? 'Active' : 'Inactive'"></dd>
+                    </div>
+                    <div class="flex justify-between gap-3" x-show="isGuard" x-cloak>
+                        <dt class="text-slate-500">Personnel ID</dt>
+                        <dd class="font-semibold text-slate-900" x-text="badge || '—'"></dd>
                     </div>
                 </dl>
             </div>
@@ -137,8 +169,11 @@
                 <ul class="mt-3 space-y-2 text-xs leading-relaxed text-slate-600">
                     <li><span class="font-semibold text-slate-800">Administrator</span> — full system and user management</li>
                     <li><span class="font-semibold text-slate-800">Supervisor</span> — deployments, monitoring, reports</li>
-                    <li><span class="font-semibold text-slate-800">Security Guard</span> — mobile check-in and alerts</li>
+                    <li><span class="font-semibold text-slate-800">Security Guard</span> — mobile check-in, face scan, and alerts</li>
                 </ul>
+                <p class="mt-4 text-xs leading-relaxed text-slate-600" x-show="isGuard" x-cloak>
+                    After create, the guard must open the mobile app and enroll their face. The same registered face is used for Face In and Face Out.
+                </p>
             </div>
         </aside>
     </div>

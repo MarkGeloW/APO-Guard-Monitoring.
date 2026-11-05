@@ -8,9 +8,7 @@ use App\Models\User;
 use App\Http\Support\InertiaPageData;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -19,7 +17,14 @@ class PersonnelController extends Controller
 {
     public function index(Request $request): Response
     {
-        $personnel = SecurityPersonnel::with(['deployments' => fn ($q) => $q->latest('deployment_date')->limit(1)])
+        $showArchived = $request->boolean('archived');
+
+        $personnelQuery = $showArchived
+            ? SecurityPersonnel::onlyTrashed()
+            : SecurityPersonnel::query();
+
+        $personnel = $personnelQuery
+            ->with(['deployments' => fn ($q) => $q->latest('deployment_date')->limit(1)])
             ->withCount('deployments')
             ->when($request->search, function ($query, $search) {
                 $query->where(function ($q) use ($search) {
@@ -29,7 +34,7 @@ class PersonnelController extends Controller
                         ->orWhere('notes', 'like', "%{$search}%");
                 });
             })
-            ->when($request->status, fn ($q, $status) => $q->where('status', $status))
+            ->when($request->status && ! $showArchived, fn ($q, $status) => $q->where('status', $status))
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->paginate(9)
@@ -37,21 +42,37 @@ class PersonnelController extends Controller
 
         return Inertia::render('Personnel/Index', [
             'personnel' => InertiaPageData::paginatedPersonnel($personnel),
-            'filters' => $request->only(['search', 'status']),
+            'filters' => [
+                'search' => $request->query('search', ''),
+                'status' => $request->query('status'),
+                'archived' => $showArchived,
+            ],
+            'stats' => [
+                'active' => SecurityPersonnel::count(),
+                'archived' => SecurityPersonnel::onlyTrashed()->count(),
+            ],
         ]);
     }
 
     public function create(): Response
     {
+        $guardUsers = User::where('role', UserRole::Guard)
+            ->whereDoesntHave('securityPersonnel')
+            ->orderBy('name')
+            ->get(['id', 'name', 'email']);
+
         return Inertia::render('Personnel/Create', [
-            'guardUsers' => User::where('role', UserRole::Guard)
-                ->whereDoesntHave('securityPersonnel')
-                ->get(['id', 'name', 'email']),
+            'guardUsers' => $guardUsers,
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
+        $availableGuardIds = User::where('role', UserRole::Guard)
+            ->whereDoesntHave('securityPersonnel')
+            ->pluck('id')
+            ->all();
+
         $validated = $request->validate([
             'badge_number' => ['required', 'string', 'max:50', 'unique:security_personnel,badge_number'],
             'first_name' => ['required', 'string', 'max:100'],
@@ -64,51 +85,28 @@ class PersonnelController extends Controller
             'emergency_contact' => ['nullable', 'string', 'max:255'],
             'emergency_phone' => ['nullable', 'string', 'max:20'],
             'notes' => ['nullable', 'string'],
-            'create_account' => ['boolean'],
-            'user_id' => ['nullable', Rule::exists('users', 'id')->whereNull('deleted_at')],
-            'account_email' => ['nullable', 'email', Rule::unique('users', 'email')],
-            'account_password' => ['nullable', 'confirmed', Password::defaults()],
+            'user_id' => [
+                'required',
+                Rule::in($availableGuardIds),
+            ],
+        ], [
+            'user_id.required' => 'Please create an account first in User Management before adding personnel.',
+            'user_id.in' => 'Please create an account first in User Management before adding personnel.',
         ]);
 
-        $userId = $validated['user_id'] ?? null;
-
-        if ($request->boolean('create_account') && ! $userId) {
-            $request->validate([
-                'account_email' => [
-                    'required',
-                    'email',
-                    function (string $attribute, mixed $value, \Closure $fail) {
-                        if (User::onlyTrashed()->where('email', $value)->exists()) {
-                            $fail('This email belongs to an archived account. Restore it from User Management instead of creating a new login.');
-                        }
-                    },
-                    Rule::unique('users', 'email'),
-                ],
-                'account_password' => ['required', 'confirmed', Password::defaults()],
-            ]);
-
-            $user = User::create([
-                'name' => "{$validated['first_name']} {$validated['last_name']}",
-                'email' => $validated['account_email'],
-                'password' => Hash::make($validated['account_password']),
-                'role' => UserRole::Guard,
-                'phone' => $validated['phone'] ?? null,
-                'is_active' => true,
-            ]);
-
-            $userId = $user->id;
-        }
+        $account = User::findOrFail($validated['user_id']);
 
         SecurityPersonnel::create([
             ...collect($validated)->only([
                 'badge_number', 'first_name', 'last_name', 'email', 'phone',
                 'address', 'date_hired', 'status', 'emergency_contact',
-                'emergency_phone', 'notes',
+                'emergency_phone', 'notes', 'user_id',
             ])->toArray(),
-            'user_id' => $userId,
+            'email' => $validated['email'] ?: $account->email,
+            'phone' => $validated['phone'] ?: $account->phone,
         ]);
 
-        return redirect()->route('personnel.index')->with('success', 'Security personnel added successfully.');
+        return redirect()->route('personnel.index')->with('success', 'Security personnel added and linked to the login account.');
     }
 
     public function show(SecurityPersonnel $personnel): View
@@ -133,6 +131,14 @@ class PersonnelController extends Controller
 
     public function update(Request $request, SecurityPersonnel $personnel): RedirectResponse
     {
+        $availableGuardIds = User::where('role', UserRole::Guard)
+            ->where(function ($q) use ($personnel) {
+                $q->whereDoesntHave('securityPersonnel')
+                    ->orWhere('id', $personnel->user_id);
+            })
+            ->pluck('id')
+            ->all();
+
         $validated = $request->validate([
             'badge_number' => ['required', 'string', 'max:50', Rule::unique('security_personnel', 'badge_number')->ignore($personnel->id)],
             'first_name' => ['required', 'string', 'max:100'],
@@ -145,7 +151,13 @@ class PersonnelController extends Controller
             'emergency_contact' => ['nullable', 'string', 'max:255'],
             'emergency_phone' => ['nullable', 'string', 'max:20'],
             'notes' => ['nullable', 'string'],
-            'user_id' => ['nullable', Rule::exists('users', 'id')->whereNull('deleted_at')],
+            'user_id' => [
+                'required',
+                Rule::in($availableGuardIds),
+            ],
+        ], [
+            'user_id.required' => 'Please create an account first in User Management before adding personnel.',
+            'user_id.in' => 'Please create an account first in User Management before adding personnel.',
         ]);
 
         $personnel->update($validated);
@@ -158,14 +170,22 @@ class PersonnelController extends Controller
         return redirect()->route('personnel.index')->with('success', 'Personnel record updated successfully.');
     }
 
+    public function restore(int $id): RedirectResponse
+    {
+        $personnel = SecurityPersonnel::onlyTrashed()->findOrFail($id);
+        $personnel->restoreProfile();
+
+        return redirect()
+            ->route('personnel.index')
+            ->with('success', 'Personnel restored. Linked login access was restored too.');
+    }
+
     public function destroy(SecurityPersonnel $personnel): RedirectResponse
     {
-        if ($personnel->user) {
-            $personnel->user->archive();
-        }
+        $personnel->archive();
 
-        $personnel->delete();
-
-        return redirect()->route('personnel.index')->with('success', 'Personnel record removed and the linked login was archived.');
+        return redirect()
+            ->route('personnel.index', ['archived' => 1])
+            ->with('success', 'Personnel removed. Open deployments were cancelled and the login account was archived.');
     }
 }

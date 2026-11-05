@@ -5,10 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 class SecurityPersonnel extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'security_personnel';
 
     protected $fillable = [
@@ -36,6 +39,35 @@ class SecurityPersonnel extends Model
             'face_signature' => 'array',
             'face_enrolled_at' => 'datetime',
         ];
+    }
+
+    public function archive(): void
+    {
+        $this->forceFill(['status' => 'inactive'])->saveQuietly();
+
+        $this->deployments()
+            ->whereIn('status', ['scheduled', 'active'])
+            ->update(['status' => 'cancelled']);
+
+        if ($this->user && ! $this->user->trashed()) {
+            $this->user->forceFill(['is_active' => false])->saveQuietly();
+            $this->user->revokeAccess();
+            $this->user->delete();
+        }
+
+        $this->delete();
+    }
+
+    public function restoreProfile(): void
+    {
+        $this->restore();
+        $this->forceFill(['status' => 'active'])->saveQuietly();
+
+        $account = User::withTrashed()->find($this->user_id);
+        if ($account?->trashed()) {
+            $account->restore();
+            $account->forceFill(['is_active' => true])->saveQuietly();
+        }
     }
 
     public function hasFaceEnrolled(): bool

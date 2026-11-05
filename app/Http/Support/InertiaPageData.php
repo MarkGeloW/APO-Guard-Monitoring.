@@ -39,8 +39,9 @@ class InertiaPageData
             'zone' => $person->zoneLabel(),
             'joined' => $person->joinedLabel(),
             'posts' => $person->postsCount(),
-            'status_label' => $person->displayStatusLabel(),
-            'is_probation' => $person->isProbation(),
+            'status_label' => $person->trashed() ? 'Archived' : $person->displayStatusLabel(),
+            'is_probation' => ! $person->trashed() && $person->isProbation(),
+            'is_archived' => $person->trashed(),
             'face_enrolled' => $person->hasFaceEnrolled(),
             'face_image_url' => $person->faceImageUrl(),
         ];
