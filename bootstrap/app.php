@@ -13,6 +13,17 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Cloudflare Tunnel / proxy: trust forwarded HTTPS headers.
+        $middleware->trustProxies(at: '*');
+
+        $middleware->web(prepend: [
+            \App\Http\Middleware\UseRequestRootUrl::class,
+        ]);
+
+        $middleware->api(prepend: [
+            \App\Http\Middleware\UseRequestRootUrl::class,
+        ]);
+
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
         ]);

@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Models\SecurityPersonnel;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -21,6 +23,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (str_starts_with((string) config('app.url'), 'https://')) {
+            URL::forceScheme('https');
+        }
+
+        // Built assets as root-relative paths so Cloudflare Tunnel works
+        // even when APP_URL is still http://localhost:8010.
+        // Skip when Vite hot file exists (local npm run dev).
+        if (! file_exists(public_path('hot'))) {
+            Vite::createAssetPathsUsing(
+                fn (string $path, ?bool $secure = null) => '/'.ltrim($path, '/')
+            );
+        }
+
         \Illuminate\Pagination\Paginator::useTailwind();
 
         Route::bind('personnel', fn (string $value) => SecurityPersonnel::findOrFail($value));

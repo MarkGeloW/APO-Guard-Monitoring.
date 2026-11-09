@@ -146,3 +146,58 @@ php artisan apo:break-glass --secret=YOUR_SECRET --restore-primary
 3. Sign in with the email/password printed by the command, then change the password immediately.
 
 The last active administrator and the emergency account cannot be archived or deactivated from User Management.
+
+
+9. Host with Cloudflare (web + mobile app)
+------------------------------------------
+Cloudflare does not run Laravel/MySQL itself. It gives you a public HTTPS URL
+in front of this PC (Tunnel) or a VPS (DNS proxy). One URL serves both the
+admin website and the Flutter app API.
+
+A) Quick test tunnel (no domain needed)
+1. Start MySQL (Laragon Start All).
+2. In the project folder:
+   npm run build
+   php artisan serve --host=0.0.0.0 --port=8010
+3. In another terminal:
+   cloudflared tunnel --url http://127.0.0.1:8010
+4. Copy the https://xxxx.trycloudflare.com URL that appears.
+5. Set in .env:
+   APP_URL=https://xxxx.trycloudflare.com
+   Then run: php artisan config:clear
+6. Website: open that HTTPS URL in a browser.
+7. Flutter app login screen: set API URL to the same HTTPS URL
+   (do NOT add /api/v1).
+
+B) Named tunnel with your own domain (recommended)
+1. Cloudflare account + domain added to Cloudflare.
+2. cloudflared tunnel login
+3. cloudflared tunnel create apo-guard
+4. Create config (example):
+
+   tunnel: YOUR_TUNNEL_ID
+   credentials-file: C:\Users\YOU\.cloudflared\YOUR_TUNNEL_ID.json
+   ingress:
+     - hostname: apo.yourdomain.com
+       service: http://127.0.0.1:8010
+     - service: http_status:404
+
+5. cloudflared tunnel route dns apo-guard apo.yourdomain.com
+6. cloudflared tunnel run apo-guard
+7. Set APP_URL=https://apo.yourdomain.com and php artisan config:clear
+8. Use that same URL in the browser and in the Flutter app.
+
+Important:
+- Use npm run build (not Vite/composer run dev) for phone/public access.
+- Delete public\hot if it exists, or styles will break through the tunnel:
+  Remove-Item public\hot -ErrorAction SilentlyContinue
+- Keep MySQL + php artisan serve (or Laragon) running while the tunnel is up.
+- A home PC tunnel stops if the PC sleeps or the internet drops.
+- For always-on hosting, put Laravel on a VPS and point Cloudflare DNS to it.
+
+If the login page has no colors/layout (plain black text):
+1. Remove-Item public\hot -ErrorAction SilentlyContinue
+2. npm run build
+3. Restart php artisan serve
+4. Restart cloudflared tunnel
+5. Hard refresh the browser (Ctrl+F5)
