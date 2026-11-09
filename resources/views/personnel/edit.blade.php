@@ -24,7 +24,7 @@
         x-data="{
             firstName: {{ Js::from(old('first_name', $personnel->first_name)) }},
             lastName: {{ Js::from(old('last_name', $personnel->last_name)) }},
-            badge: {{ Js::from(old('badge_number', $personnel->badge_number)) }},
+            license: {{ Js::from(old('license_number', $personnel->license_number)) }},
             email: {{ Js::from(old('email', $personnel->email ?? '')) }},
             phone: {{ Js::from(old('phone', $personnel->phone ?? '')) }},
             status: {{ Js::from(old('status', $personnel->status)) }},
@@ -38,7 +38,7 @@
             get statusLabel() { return this.statusLabels[this.status] || this.status }
         }"
     >
-        <form method="POST" action="{{ route('personnel.update', $personnel) }}" class="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-3">
+        <form method="POST" action="{{ route('personnel.update', $personnel) }}" enctype="multipart/form-data" class="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-3">
             @csrf
             @method('PUT')
 
@@ -54,9 +54,9 @@
 
             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                    <label class="{{ $labelClass }}">Badge Number</label>
-                    <input type="text" name="badge_number" required class="{{ $inputClass }}" x-model="badge">
-                    @error('badge_number')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    <label class="{{ $labelClass }}">Guard License Number</label>
+                    <input type="text" name="license_number" required class="{{ $inputClass }}" x-model="license">
+                    @error('license_number')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="{{ $labelClass }}">Status</label>
@@ -114,6 +114,21 @@
                     <input type="text" name="emergency_phone" value="{{ old('emergency_phone', $personnel->emergency_phone) }}" class="{{ $inputClass }}">
                 </div>
                 <div class="md:col-span-2">
+                    <label class="{{ $labelClass }}">Valid ID Picture {{ $personnel->hasIdPicture() ? '(optional add more)' : '(required)' }}</label>
+                    <input type="file" name="id_pictures[]" accept="image/jpeg,image/png,image/webp" multiple class="{{ $inputClass }}" @required(! $personnel->hasIdPicture())>
+                    <p class="mt-1.5 text-xs text-slate-500">Upload at least one valid ID picture. New uploads are added to existing files.</p>
+                    @error('id_pictures')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    @if($personnel->hasIdPicture())
+                        <div class="mt-3 grid grid-cols-3 gap-2">
+                            @foreach($personnel->idPictureUrls() as $url)
+                                <a href="{{ $url }}" target="_blank" rel="noopener" class="overflow-hidden rounded-lg ring-1 ring-slate-200">
+                                    <img src="{{ $url }}" alt="ID picture" class="aspect-square w-full object-cover">
+                                </a>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
+                <div class="md:col-span-2">
                     <label class="{{ $labelClass }}">Notes</label>
                     <textarea name="notes" rows="3" class="{{ $inputClass }}" placeholder="Optional internal notes">{{ old('notes', $personnel->notes) }}</textarea>
                 </div>
@@ -142,7 +157,7 @@
                     <div class="flex h-12 w-12 items-center justify-center rounded-full bg-[#162d4a] text-sm font-bold text-white" x-text="initials"></div>
                     <div class="min-w-0">
                         <p class="truncate text-sm font-bold text-slate-900" x-text="fullName"></p>
-                        <p class="truncate text-xs text-slate-500">Badge <span x-text="badge || '—'"></span></p>
+                        <p class="truncate text-xs text-slate-500">License <span x-text="license || '—'"></span></p>
                     </div>
                 </div>
 

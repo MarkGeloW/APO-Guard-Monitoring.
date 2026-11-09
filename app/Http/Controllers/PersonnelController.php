@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Http\Support\InertiaPageData;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Inertia\Inertia;
@@ -30,7 +31,7 @@ class PersonnelController extends Controller
                 $query->where(function ($q) use ($search) {
                     $q->where('first_name', 'like', "%{$search}%")
                         ->orWhere('last_name', 'like', "%{$search}%")
-                        ->orWhere('badge_number', 'like', "%{$search}%")
+                        ->orWhere('license_number', 'like', "%{$search}%")
                         ->orWhere('notes', 'like', "%{$search}%");
                 });
             })
@@ -74,7 +75,7 @@ class PersonnelController extends Controller
             ->all();
 
         $validated = $request->validate([
-            'badge_number' => ['required', 'string', 'max:50', 'unique:security_personnel,badge_number'],
+            'license_number' => ['required', 'string', 'max:50', 'unique:security_personnel,license_number'],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
             'email' => ['nullable', 'email', 'max:255'],
@@ -89,22 +90,43 @@ class PersonnelController extends Controller
                 'required',
                 Rule::in($availableGuardIds),
             ],
+            'id_pictures' => ['required', 'array', 'min:1'],
+            'id_pictures.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ], [
             'user_id.required' => 'Please create an account first in User Management before adding personnel.',
             'user_id.in' => 'Please create an account first in User Management before adding personnel.',
+            'license_number.required' => 'Guard License Number is required.',
+            'license_number.unique' => 'This Guard License Number is already assigned to another guard.',
+            'id_pictures.required' => 'Please upload at least one valid ID picture.',
+            'id_pictures.min' => 'Please upload at least one valid ID picture.',
         ]);
 
         $account = User::findOrFail($validated['user_id']);
+        $idPaths = SecurityPersonnel::storeIdPictures($request->file('id_pictures', []));
 
-        SecurityPersonnel::create([
+        $personnel = SecurityPersonnel::create([
             ...collect($validated)->only([
-                'badge_number', 'first_name', 'last_name', 'email', 'phone',
+                'license_number', 'first_name', 'last_name', 'email', 'phone',
                 'address', 'date_hired', 'status', 'emergency_contact',
                 'emergency_phone', 'notes', 'user_id',
             ])->toArray(),
+            'id_picture_paths' => $idPaths,
             'email' => $validated['email'] ?: $account->email,
             'phone' => $validated['phone'] ?: $account->phone,
         ]);
+
+        if ($idPaths !== []) {
+            $moved = [];
+            foreach ($idPaths as $path) {
+                $filename = basename($path);
+                $target = 'ids/personnel/'.$personnel->id.'/'.$filename;
+                if (Storage::disk('public')->exists($path)) {
+                    Storage::disk('public')->move($path, $target);
+                    $moved[] = $target;
+                }
+            }
+            $personnel->update(['id_picture_paths' => $moved]);
+        }
 
         return redirect()->route('personnel.index')->with('success', 'Security personnel added and linked to the login account.');
     }
@@ -140,7 +162,7 @@ class PersonnelController extends Controller
             ->all();
 
         $validated = $request->validate([
-            'badge_number' => ['required', 'string', 'max:50', Rule::unique('security_personnel', 'badge_number')->ignore($personnel->id)],
+            'license_number' => ['required', 'string', 'max:50', Rule::unique('security_personnel', 'license_number')->ignore($personnel->id)],
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['required', 'string', 'max:100'],
             'email' => ['nullable', 'email', 'max:255'],
@@ -155,12 +177,31 @@ class PersonnelController extends Controller
                 'required',
                 Rule::in($availableGuardIds),
             ],
+            'id_pictures' => [$personnel->hasIdPicture() ? 'nullable' : 'required', 'array', 'min:1'],
+            'id_pictures.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ], [
             'user_id.required' => 'Please create an account first in User Management before adding personnel.',
             'user_id.in' => 'Please create an account first in User Management before adding personnel.',
+            'license_number.required' => 'Guard License Number is required.',
+            'license_number.unique' => 'This Guard License Number is already assigned to another guard.',
+            'id_pictures.required' => 'Please upload at least one valid ID picture.',
+            'id_pictures.min' => 'Please upload at least one valid ID picture.',
         ]);
 
-        $personnel->update($validated);
+        $data = collect($validated)->except('id_pictures')->toArray();
+
+        if ($request->hasFile('id_pictures')) {
+            $newPaths = SecurityPersonnel::storeIdPictures(
+                $request->file('id_pictures', []),
+                $personnel->id,
+            );
+            $data['id_picture_paths'] = array_values(array_merge(
+                $personnel->id_picture_paths ?? [],
+                $newPaths,
+            ));
+        }
+
+        $personnel->update($data);
 
         if (in_array($validated['status'], ['inactive'], true) && $personnel->user) {
             $personnel->user->update(['is_active' => false]);

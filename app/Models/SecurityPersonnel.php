@@ -16,7 +16,8 @@ class SecurityPersonnel extends Model
 
     protected $fillable = [
         'user_id',
-        'badge_number',
+        'license_number',
+        'id_picture_paths',
         'first_name',
         'last_name',
         'email',
@@ -36,9 +37,46 @@ class SecurityPersonnel extends Model
     {
         return [
             'date_hired' => 'date',
+            'id_picture_paths' => 'array',
             'face_signature' => 'array',
             'face_enrolled_at' => 'datetime',
         ];
+    }
+
+    public function hasIdPicture(): bool
+    {
+        return is_array($this->id_picture_paths) && count($this->id_picture_paths) > 0;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function idPictureUrls(): array
+    {
+        if (! $this->hasIdPicture()) {
+            return [];
+        }
+
+        return array_values(array_map(
+            fn (string $path) => Storage::disk('public')->url($path),
+            $this->id_picture_paths,
+        ));
+    }
+
+    /**
+     * @param  array<int, \Illuminate\Http\UploadedFile>  $files
+     * @return list<string>
+     */
+    public static function storeIdPictures(array $files, ?int $personnelId = null): array
+    {
+        $folder = 'ids/personnel/'.($personnelId ? (string) $personnelId : 'pending');
+        $paths = [];
+
+        foreach ($files as $file) {
+            $paths[] = $file->store($folder, 'public');
+        }
+
+        return $paths;
     }
 
     public function archive(): void

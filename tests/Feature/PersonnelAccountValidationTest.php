@@ -7,6 +7,8 @@ use App\Models\Deployment;
 use App\Models\SecurityPersonnel;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class PersonnelAccountValidationTest extends TestCase
@@ -21,7 +23,7 @@ class PersonnelAccountValidationTest extends TestCase
 
         $this->actingAs($admin)
             ->post(route('personnel.store'), [
-                'badge_number' => 'SG-999',
+                'license_number' => 'SG-999',
                 'first_name' => 'No',
                 'last_name' => 'Account',
                 'status' => 'active',
@@ -31,6 +33,7 @@ class PersonnelAccountValidationTest extends TestCase
 
     public function test_creating_guard_account_also_creates_personnel_profile(): void
     {
+        Storage::fake('public');
         $this->seed();
 
         $admin = User::where('email', 'admin@aposecurity.com')->firstOrFail();
@@ -43,18 +46,39 @@ class PersonnelAccountValidationTest extends TestCase
                 'password' => 'password',
                 'password_confirmation' => 'password',
                 'is_active' => 1,
-                'badge_number' => 'SG-100',
+                'license_number' => 'LIC-100',
+                'id_pictures' => [
+                    UploadedFile::fake()->image('id-front.jpg', 800, 600),
+                ],
             ])
             ->assertRedirect(route('users.index'));
 
         $user = User::where('email', 'newguard@aposecurity.com')->firstOrFail();
+        $personnel = SecurityPersonnel::where('user_id', $user->id)->firstOrFail();
 
-        $this->assertDatabaseHas('security_personnel', [
-            'user_id' => $user->id,
-            'badge_number' => 'SG-100',
-            'first_name' => 'New',
-            'last_name' => 'Guard',
-        ]);
+        $this->assertSame('LIC-100', $personnel->license_number);
+        $this->assertSame('New', $personnel->first_name);
+        $this->assertSame('Guard', $personnel->last_name);
+        $this->assertTrue($personnel->hasIdPicture());
+    }
+
+    public function test_guard_account_requires_id_picture(): void
+    {
+        $this->seed();
+
+        $admin = User::where('email', 'admin@aposecurity.com')->firstOrFail();
+
+        $this->actingAs($admin)
+            ->post(route('users.store'), [
+                'name' => 'No Id Guard',
+                'email' => 'noid@aposecurity.com',
+                'role' => UserRole::Guard->value,
+                'password' => 'password',
+                'password_confirmation' => 'password',
+                'is_active' => 1,
+                'license_number' => 'LIC-101',
+            ])
+            ->assertSessionHasErrors('id_pictures');
     }
 
     public function test_removing_personnel_archives_record_and_cancels_open_deployments(): void
@@ -62,7 +86,7 @@ class PersonnelAccountValidationTest extends TestCase
         $this->seed();
 
         $admin = User::where('email', 'admin@aposecurity.com')->firstOrFail();
-        $personnel = SecurityPersonnel::where('badge_number', 'SG-001')->firstOrFail();
+        $personnel = SecurityPersonnel::where('license_number', 'SG-001')->firstOrFail();
 
         Deployment::where('security_personnel_id', $personnel->id)
             ->whereIn('status', ['scheduled', 'active'])

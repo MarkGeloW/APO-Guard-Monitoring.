@@ -86,7 +86,7 @@ class ReportController extends Controller
                     ->map(fn (SecurityPersonnel $p) => [
                         'id' => $p->id,
                         'name' => $p->fullName(),
-                        'badge' => $p->badge_number,
+                        'badge' => $p->license_number,
                     ])
                     ->values(),
             ],
@@ -128,12 +128,12 @@ class ReportController extends Controller
             'Deployment Schedule Report',
             $data['periodLabel'],
             $data['filterSummary'],
-            ['Date', 'Deploy Code', 'Guard', 'Badge', 'Location', 'Shift Start', 'Shift End', 'Shift Type', 'Status', 'Attendance'],
+            ['Date', 'Deploy Code', 'Guard', 'License', 'Location', 'Shift Start', 'Shift End', 'Shift Type', 'Status', 'Attendance'],
             $data['deployments']->map(fn (Deployment $d) => [
                 $this->csvDate($d->deployment_date),
                 $d->deployCode(),
                 $d->personnel?->fullName() ?? '',
-                $d->personnel?->badge_number ?? '',
+                $d->personnel?->license_number ?? '',
                 $d->location?->name ?? '',
                 $d->formattedShiftStart(),
                 $d->formattedShiftEnd(),
@@ -167,14 +167,14 @@ class ReportController extends Controller
             'Attendance & Verification Report',
             $data['periodLabel'],
             $data['filterSummary'],
-            ['Date', 'Guard', 'Badge', 'Location', 'Time In', 'Time Out', 'Status', 'GPS Verified', 'Face Verified', 'Late (Minutes)'],
+            ['Date', 'Guard', 'License', 'Location', 'Time In', 'Time Out', 'Status', 'GPS Verified', 'Face Verified', 'Late (Minutes)'],
             $data['attendances']->map(function (Attendance $a) {
                 $late = $a->deployment ? $a->checkInLatenessMinutes($a->deployment) : null;
 
                 return [
                     $this->csvDate($a->deployment?->deployment_date),
                     $a->personnel?->fullName() ?? '',
-                    $a->personnel?->badge_number ?? '',
+                    $a->personnel?->license_number ?? '',
                     $a->deployment?->location?->name ?? '',
                     $this->csvDateTime($a->time_in),
                     $this->csvDateTime($a->time_out),
@@ -210,9 +210,9 @@ class ReportController extends Controller
             'Security Personnel Roster',
             $data['periodLabel'],
             $data['filterSummary'],
-            ['Badge', 'Name', 'Status', 'Phone', 'Email', 'Date Hired', 'Face Enrolled', 'Deployments', 'Attendance Records'],
+            ['License', 'Name', 'Status', 'Phone', 'Email', 'Date Hired', 'Face Enrolled', 'Deployments', 'Attendance Records'],
             $data['personnel']->map(fn (SecurityPersonnel $p) => [
-                $p->badge_number ?? '',
+                $p->license_number ?? '',
                 $p->fullName(),
                 ucwords(str_replace('_', ' ', $p->status)),
                 $p->phone ?? '',

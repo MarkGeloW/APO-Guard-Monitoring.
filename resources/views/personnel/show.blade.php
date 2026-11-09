@@ -22,7 +22,7 @@
             <div>
                 <h2 class="text-2xl font-extrabold uppercase tracking-wide text-slate-900">{{ $personnel->fullName() }}</h2>
                 <div class="mt-1.5 flex flex-wrap items-center gap-2">
-                    <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">Badge {{ $personnel->badge_number }}</span>
+                    <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">License {{ $personnel->license_number }}</span>
                     <span class="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">{{ $personnel->guardCode() }}</span>
                     <x-status-badge :status="$personnel->status" />
                     @if($personnel->hasFaceEnrolled())
@@ -58,6 +58,24 @@
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div class="space-y-4">
+            <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p class="text-sm font-bold text-slate-900">Valid ID Pictures</p>
+                <p class="mt-1 text-xs text-slate-500">Submitted government or agency ID credentials</p>
+                @if($personnel->hasIdPicture())
+                    <div class="mt-4 grid grid-cols-2 gap-3">
+                        @foreach($personnel->idPictureUrls() as $url)
+                            <a href="{{ $url }}" target="_blank" rel="noopener" class="overflow-hidden rounded-xl ring-1 ring-slate-200">
+                                <img src="{{ $url }}" alt="ID picture" class="aspect-[4/3] w-full object-cover">
+                            </a>
+                        @endforeach
+                    </div>
+                @else
+                    <div class="mt-4 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                        No ID picture on file.
+                    </div>
+                @endif
+            </div>
+
             <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p class="text-sm font-bold text-slate-900">Enrolled Face</p>
                 <p class="mt-1 text-xs text-slate-500">Used to verify check-in and check-out</p>

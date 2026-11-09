@@ -1,5 +1,5 @@
 @php
-    $defaultRole = old('role', $roles[0]->value ?? 'admin');
+    $defaultRole = old('role', $roles[0]->value ?? 'supervisor');
 @endphp
 
 <x-admin-layout>
@@ -12,7 +12,7 @@
 
     <div class="mb-6">
         <h2 class="text-2xl font-extrabold uppercase tracking-wide text-slate-900">Add System User</h2>
-        <p class="mt-1 text-sm text-slate-500">Create an administrator, supervisor, or guard login account.</p>
+        <p class="mt-1 text-sm text-slate-500">Create a supervisor or guard login account. Administrator accounts are seeded and cannot be created here.</p>
     </div>
 
     <div
@@ -22,7 +22,7 @@
             email: {{ Js::from(old('email', '')) }},
             phone: {{ Js::from(old('phone', '')) }},
             role: {{ Js::from($defaultRole) }},
-            badge: {{ Js::from(old('badge_number', '')) }},
+            license: {{ Js::from(old('license_number', '')) }},
             dateHired: {{ Js::from(old('date_hired', '')) }},
             active: true,
             roleLabels: {{ Js::from(collect($roles)->mapWithKeys(fn ($r) => [$r->value => $r->label()])) }},
@@ -35,7 +35,7 @@
             get roleLabel() { return this.roleLabels[this.role] || this.role }
         }"
     >
-        <form method="POST" action="{{ route('users.store') }}" class="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-3">
+        <form method="POST" action="{{ route('users.store') }}" enctype="multipart/form-data" class="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm xl:col-span-3">
             @csrf
 
             <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
@@ -106,14 +106,28 @@
                 </div>
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
-                        <label class="{{ $labelClass }}">Personnel ID / Badge Number</label>
-                        <input type="text" name="badge_number" class="{{ $inputClass }}" x-model="badge" :required="isGuard" value="{{ old('badge_number') }}" placeholder="e.g. SG-005">
-                        @error('badge_number')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                        <label class="{{ $labelClass }}">Guard License Number</label>
+                        <input type="text" name="license_number" class="{{ $inputClass }}" x-model="license" :required="isGuard" value="{{ old('license_number') }}" placeholder="e.g. LIC-2026-001">
+                        @error('license_number')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                     </div>
                     <div>
                         <label class="{{ $labelClass }}">Date Hired</label>
                         <input type="date" name="date_hired" class="{{ $inputClass }}" x-model="dateHired" value="{{ old('date_hired') }}">
                         @error('date_hired')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="{{ $labelClass }}">Valid ID Picture (required)</label>
+                        <input
+                            type="file"
+                            name="id_pictures[]"
+                            accept="image/jpeg,image/png,image/webp"
+                            multiple
+                            class="{{ $inputClass }}"
+                            :required="isGuard"
+                        >
+                        <p class="mt-1.5 text-xs text-slate-500">Upload at least one clear photo of a valid government or agency ID. You may select more than one.</p>
+                        @error('id_pictures')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                        @error('id_pictures.0')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                     </div>
                 </div>
             </div>
@@ -158,8 +172,8 @@
                         <dd class="font-semibold" :class="active ? 'text-emerald-600' : 'text-slate-500'" x-text="active ? 'Active' : 'Inactive'"></dd>
                     </div>
                     <div class="flex justify-between gap-3" x-show="isGuard" x-cloak>
-                        <dt class="text-slate-500">Personnel ID</dt>
-                        <dd class="font-semibold text-slate-900" x-text="badge || '—'"></dd>
+                        <dt class="text-slate-500">License No.</dt>
+                        <dd class="font-semibold text-slate-900" x-text="license || '—'"></dd>
                     </div>
                 </dl>
             </div>
@@ -167,10 +181,12 @@
             <div class="rounded-2xl border border-blue-100 bg-gradient-to-br from-blue-50 to-slate-50 p-5">
                 <p class="text-sm font-bold text-slate-900">Role access</p>
                 <ul class="mt-3 space-y-2 text-xs leading-relaxed text-slate-600">
-                    <li><span class="font-semibold text-slate-800">Administrator</span> — full system and user management</li>
                     <li><span class="font-semibold text-slate-800">Supervisor</span> — deployments, monitoring, reports</li>
                     <li><span class="font-semibold text-slate-800">Security Guard</span> — mobile check-in, face scan, and alerts</li>
                 </ul>
+                <p class="mt-3 text-xs leading-relaxed text-slate-500">
+                    The system administrator account is managed separately and cannot be created from this form.
+                </p>
                 <p class="mt-4 text-xs leading-relaxed text-slate-600" x-show="isGuard" x-cloak>
                     After create, the guard must open the mobile app and enroll their face. The same registered face is used for Face In and Face Out.
                 </p>

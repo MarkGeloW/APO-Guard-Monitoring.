@@ -4,7 +4,7 @@
     <form method="POST" action="{{ route('personnel.store') }}" class="bg-white rounded-xl border border-slate-200 p-6 max-w-3xl space-y-4">
         @csrf
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><label class="{{ $labelClass }}">Badge Number</label><input type="text" name="badge_number" value="{{ old('badge_number') }}" required class="{{ $inputClass }}"></div>
+            <div><label class="{{ $labelClass }}">Guard License Number</label><input type="text" name="license_number" value="{{ old('license_number') }}" required class="{{ $inputClass }}"></div>
             <div><label class="{{ $labelClass }}">Status</label>
                 <select name="status" class="{{ $inputClass }}">
                     @foreach(['active','inactive','on_leave'] as $s)<option value="{{ $s }}">{{ str_replace('_',' ',ucfirst($s)) }}</option>@endforeach

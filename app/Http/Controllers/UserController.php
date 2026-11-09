@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
@@ -54,7 +55,9 @@ class UserController extends Controller
 
     public function create(): View
     {
-        return view('users.create', ['roles' => UserRole::cases()]);
+        return view('users.create', [
+            'roles' => self::creatableRoles(),
+        ]);
     }
 
     public function store(Request $request): RedirectResponse
@@ -66,20 +69,28 @@ class UserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', ...self::uniqueLoginEmail()],
             'phone' => ['nullable', 'string', 'max:20'],
-            'role' => ['required', Rule::enum(UserRole::class)],
+            'role' => ['required', Rule::in(array_map(
+                fn (UserRole $role) => $role->value,
+                self::creatableRoles(),
+            ))],
             'password' => ['required', 'confirmed', Password::defaults()],
             'is_active' => ['boolean'],
-            'badge_number' => [
+            'license_number' => [
                 Rule::requiredIf($isGuard),
                 'nullable',
                 'string',
                 'max:50',
-                'unique:security_personnel,badge_number',
+                'unique:security_personnel,license_number',
             ],
             'date_hired' => ['nullable', 'date'],
+            'id_pictures' => [Rule::requiredIf($isGuard), 'nullable', 'array', 'min:1'],
+            'id_pictures.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ], [
-            'badge_number.required' => 'Personnel ID is required when creating a Security Guard account.',
-            'badge_number.unique' => 'This Personnel ID is already assigned to another guard.',
+            'role.in' => 'Administrator accounts cannot be created here. Choose Supervisor or Security Guard.',
+            'license_number.required' => 'Guard License Number is required when creating a Security Guard account.',
+            'license_number.unique' => 'This Guard License Number is already assigned to another guard.',
+            'id_pictures.required' => 'Please upload at least one valid ID picture.',
+            'id_pictures.min' => 'Please upload at least one valid ID picture.',
         ]);
 
         $user = DB::transaction(function () use ($request, $validated, $isGuard) {
@@ -94,10 +105,12 @@ class UserController extends Controller
 
             if ($isGuard) {
                 $nameParts = preg_split('/\s+/', trim($validated['name']), 2) ?: ['Guard', ''];
+                $idPaths = SecurityPersonnel::storeIdPictures($request->file('id_pictures', []));
 
-                SecurityPersonnel::create([
+                $personnel = SecurityPersonnel::create([
                     'user_id' => $user->id,
-                    'badge_number' => $validated['badge_number'],
+                    'license_number' => $validated['license_number'],
+                    'id_picture_paths' => $idPaths,
                     'first_name' => $nameParts[0] ?: 'Guard',
                     'last_name' => $nameParts[1] ?? '',
                     'email' => $validated['email'],
@@ -105,13 +118,26 @@ class UserController extends Controller
                     'date_hired' => $validated['date_hired'] ?? now()->toDateString(),
                     'status' => 'active',
                 ]);
+
+                if ($idPaths !== []) {
+                    $moved = [];
+                    foreach ($idPaths as $path) {
+                        $filename = basename($path);
+                        $target = 'ids/personnel/'.$personnel->id.'/'.$filename;
+                        if (Storage::disk('public')->exists($path)) {
+                            Storage::disk('public')->move($path, $target);
+                            $moved[] = $target;
+                        }
+                    }
+                    $personnel->update(['id_picture_paths' => $moved]);
+                }
             }
 
             return $user;
         });
 
         $message = $isGuard
-            ? 'Guard account created with Personnel ID. Ask the guard to enroll their face in the mobile app before Face In / Face Out.'
+            ? 'Guard account created with license number and ID picture. Ask the guard to enroll their face in the mobile app before Face In / Face Out.'
             : 'User created successfully.';
 
         return redirect()->route('users.index')->with('success', $message);
@@ -119,22 +145,38 @@ class UserController extends Controller
 
     public function edit(User $user): View
     {
-        return view('users.edit', ['user' => $user, 'roles' => UserRole::cases()]);
+        return view('users.edit', [
+            'user' => $user,
+            'roles' => $user->isAdmin()
+                ? UserRole::cases()
+                : self::creatableRoles(),
+        ]);
     }
 
     public function update(Request $request, User $user): RedirectResponse
     {
+        $allowedRoles = $user->isAdmin()
+            ? array_map(fn (UserRole $role) => $role->value, UserRole::cases())
+            : array_map(fn (UserRole $role) => $role->value, self::creatableRoles());
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', ...self::uniqueLoginEmail($user->id)],
             'phone' => ['nullable', 'string', 'max:20'],
-            'role' => ['required', Rule::enum(UserRole::class)],
+            'role' => ['required', Rule::in($allowedRoles)],
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'is_active' => ['boolean'],
+        ], [
+            'role.in' => 'Administrator accounts cannot be assigned here. Choose Supervisor or Security Guard.',
         ]);
 
         $data = collect($validated)->except('password')->toArray();
         $data['is_active'] = $request->boolean('is_active', true);
+
+        if ($user->isBreakGlassAdmin() || $user->isLastActiveAdmin()) {
+            $data['role'] = UserRole::Admin->value;
+            $data['is_active'] = true;
+        }
 
         if ($request->filled('password')) {
             $data['password'] = Hash::make($validated['password']);
@@ -153,6 +195,14 @@ class UserController extends Controller
     {
         if ($user->id === auth()->id()) {
             return back()->with('error', 'You cannot deactivate your own account.');
+        }
+
+        if ($user->is_active && $user->isBreakGlassAdmin()) {
+            return back()->with('error', 'The emergency administrator account cannot be deactivated. Use break-glass CLI recovery if needed.');
+        }
+
+        if ($user->is_active && $user->isLastActiveAdmin()) {
+            return back()->with('error', 'You cannot deactivate the last active administrator. Use break-glass access if locked out.');
         }
 
         $user->update(['is_active' => ! $user->is_active]);
@@ -184,11 +234,30 @@ class UserController extends Controller
             return back()->with('error', 'You cannot archive your own account.');
         }
 
+        if ($user->isBreakGlassAdmin()) {
+            return back()->with('error', 'The emergency administrator account cannot be archived.');
+        }
+
+        if ($user->isLastActiveAdmin()) {
+            return back()->with('error', 'You cannot archive the last active administrator. Use break-glass access if locked out.');
+        }
+
         $user->archive();
 
         return redirect()
             ->route('users.index', ['archived' => 1])
             ->with('success', 'Account archived. Login access was removed, and the record can be restored later.');
+    }
+
+    /**
+     * @return list<UserRole>
+     */
+    private static function creatableRoles(): array
+    {
+        return [
+            UserRole::Supervisor,
+            UserRole::Guard,
+        ];
     }
 
     /**

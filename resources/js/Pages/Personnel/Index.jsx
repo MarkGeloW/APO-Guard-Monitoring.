@@ -126,7 +126,7 @@ export default function Index({
                         type="text"
                         name="search"
                         defaultValue={filters.search ?? ''}
-                        placeholder="Search by name or badge..."
+                        placeholder="Search by name or license number..."
                         className="w-full rounded-2xl border-0 bg-white py-4 pl-11 pr-4 text-sm text-slate-700 shadow-sm ring-1 ring-slate-200 placeholder:text-slate-400 focus:ring-2 focus:ring-blue-400"
                     />
                 </div>

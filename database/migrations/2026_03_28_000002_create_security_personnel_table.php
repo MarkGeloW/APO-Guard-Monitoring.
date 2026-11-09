@@ -11,7 +11,8 @@ return new class extends Migration
         Schema::create('security_personnel', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('badge_number')->unique();
+            $table->string('license_number')->unique();
+            $table->json('id_picture_paths')->nullable();
             $table->string('first_name');
             $table->string('last_name');
             $table->string('email')->nullable();

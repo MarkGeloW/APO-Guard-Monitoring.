@@ -63,7 +63,7 @@ class DatabaseSeeder extends Seeder
 
             return SecurityPersonnel::create([
                 'user_id' => $user->id,
-                'badge_number' => $badge,
+                'license_number' => $badge,
                 'first_name' => $first,
                 'last_name' => $last,
                 'email' => $email,

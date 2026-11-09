@@ -84,7 +84,8 @@ class MonitoringController extends Controller
             return [
                 'id' => $deployment->id,
                 'name' => $deployment->personnel->fullName(),
-                'badge' => $deployment->personnel->badge_number,
+                'badge' => $deployment->personnel->license_number,
+                'license_number' => $deployment->personnel->license_number,
                 'guard_code' => $deployment->personnel->guardCode(),
                 'location' => $deployment->location->name,
                 'zone' => 'Zone '.chr(65 + $zoneIndex),

@@ -2,7 +2,7 @@
     $personnelMap = $personnel->mapWithKeys(fn ($p) => [
         $p->id => [
             'name' => $p->fullName(),
-            'badge' => $p->badge_number,
+            'badge' => $p->license_number,
             'initials' => $p->initials(),
             'phone' => $p->phone ?: '—',
             'rank' => $p->rank(),
@@ -81,7 +81,7 @@
                 <label class="{{ $labelClass }}">Security Guard</label>
                 <select name="security_personnel_id" required class="{{ $inputClass }}" x-model="personnelId">
                     @foreach($personnel as $p)
-                        <option value="{{ $p->id }}" @selected($defaultPersonnelId == $p->id)>{{ $p->fullName() }} ({{ $p->badge_number }})</option>
+                        <option value="{{ $p->id }}" @selected($defaultPersonnelId == $p->id)>{{ $p->fullName() }} ({{ $p->license_number }})</option>
                     @endforeach
                 </select>
                 @error('security_personnel_id')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
@@ -157,7 +157,7 @@
                         <p class="truncate text-xs text-slate-500">
                             <span x-text="guard ? guard.rank : ''"></span>
                             <span x-show="guard"> · </span>
-                            Badge <span x-text="guard ? guard.badge : '—'"></span>
+                            License <span x-text="guard ? guard.badge : '—'"></span>
                         </p>
                     </div>
                 </div>

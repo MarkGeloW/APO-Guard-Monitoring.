@@ -43,7 +43,7 @@ APO-ATT-{{ now()->format('Ymd-Hi') }}
                     <td>{{ $a->deployment?->deployment_date?->format('M j, Y') ?? '—' }}</td>
                     <td>
                         <strong>{{ $a->personnel?->fullName() ?? '—' }}</strong><br>
-                        <span class="muted">{{ $a->personnel?->badge_number }}</span>
+                        <span class="muted">{{ $a->personnel?->license_number }}</span>
                     </td>
                     <td>{{ $a->deployment?->location?->name ?? '—' }}</td>
                     <td>{{ $a->time_in?->format('M j, g:i A') ?? '—' }}</td>

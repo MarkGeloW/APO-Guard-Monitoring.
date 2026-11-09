@@ -18,7 +18,7 @@ const labelClass = 'block text-[11px] font-bold uppercase tracking-wide text-sla
 
 export default function Create({ guardUsers = [] }) {
     const { data, setData, post, processing, errors } = useForm({
-        badge_number: '',
+        license_number: '',
         status: 'active',
         first_name: '',
         last_name: '',
@@ -30,11 +30,12 @@ export default function Create({ guardUsers = [] }) {
         emergency_phone: '',
         notes: '',
         user_id: guardUsers[0]?.id ? String(guardUsers[0].id) : '',
+        id_pictures: [],
     });
 
     const submit = (e) => {
         e.preventDefault();
-        post('/personnel');
+        post('/personnel', { forceFormData: true });
     };
 
     const hasGuardAccounts = guardUsers.length > 0;
@@ -93,16 +94,17 @@ export default function Create({ guardUsers = [] }) {
 
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                        <label className={labelClass}>Personnel ID / Badge Number</label>
+                        <label className={labelClass}>Guard License Number</label>
                         <input
                             type="text"
-                            value={data.badge_number}
-                            onChange={(e) => setData('badge_number', e.target.value)}
+                            value={data.license_number}
+                            onChange={(e) => setData('license_number', e.target.value)}
                             required
                             disabled={!hasGuardAccounts}
                             className={inputClass}
+                            placeholder="e.g. LIC-2026-001"
                         />
-                        {errors.badge_number && <p className="mt-1 text-xs text-red-500">{errors.badge_number}</p>}
+                        {errors.license_number && <p className="mt-1 text-xs text-red-500">{errors.license_number}</p>}
                     </div>
                     <div>
                         <label className={labelClass}>Status</label>
@@ -206,6 +208,26 @@ export default function Create({ guardUsers = [] }) {
                             className={inputClass}
                         />
                     </div>
+                </div>
+
+                <div>
+                    <label className={labelClass}>Valid ID Picture (required)</label>
+                    <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        multiple
+                        disabled={!hasGuardAccounts}
+                        required
+                        onChange={(e) => setData('id_pictures', Array.from(e.target.files || []))}
+                        className={inputClass}
+                    />
+                    <p className="mt-1 text-xs text-slate-500">
+                        Upload at least one clear photo of a valid ID. You may select more than one.
+                    </p>
+                    {errors.id_pictures && <p className="mt-1 text-xs text-red-500">{errors.id_pictures}</p>}
+                    {errors['id_pictures.0'] && (
+                        <p className="mt-1 text-xs text-red-500">{errors['id_pictures.0']}</p>
+                    )}
                 </div>
 
                 <div>

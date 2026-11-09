@@ -24,7 +24,7 @@ test('guard cannot sign in to web portal', function () {
     $guard = User::factory()->create(['role' => UserRole::Guard]);
     SecurityPersonnel::create([
         'user_id' => $guard->id,
-        'badge_number' => 'SG-TEST',
+        'license_number' => 'SG-TEST',
         'first_name' => 'Test',
         'last_name' => 'Guard',
         'status' => 'active',
@@ -41,7 +41,7 @@ test('guard cannot sign in to web portal', function () {
 test('personnel profile route resolves correctly', function () {
     $supervisor = User::factory()->create(['role' => UserRole::Supervisor]);
     $personnel = SecurityPersonnel::create([
-        'badge_number' => 'SG-999',
+        'license_number' => 'SG-999',
         'first_name' => 'Route',
         'last_name' => 'Test',
         'status' => 'active',

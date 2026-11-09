@@ -53,7 +53,7 @@ APO-PER-{{ now()->format('Ymd-Hi') }}
         </colgroup>
         <thead>
             <tr>
-                <th>Badge</th>
+                <th>License</th>
                 <th>Name</th>
                 <th>Status</th>
                 <th>Phone</th>
@@ -67,7 +67,7 @@ APO-PER-{{ now()->format('Ymd-Hi') }}
         <tbody>
             @forelse($personnel as $p)
                 <tr>
-                    <td style="font-family: ui-monospace, monospace;">{{ $p->badge_number }}</td>
+                    <td style="font-family: ui-monospace, monospace;">{{ $p->license_number }}</td>
                     <td><strong>{{ $p->fullName() }}</strong></td>
                     <td>{{ ucwords(str_replace('_', ' ', $p->status)) }}</td>
                     <td>{{ $p->phone ?: '—' }}</td>

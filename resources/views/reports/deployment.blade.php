@@ -95,7 +95,7 @@ APO-DEP-{{ now()->format('Ymd-Hi') }}
                     <td style="font-family: ui-monospace, monospace; font-size: 10px;">{{ $d->deployCode() }}</td>
                     <td>
                         <strong>{{ $d->personnel?->fullName() ?? '—' }}</strong><br>
-                        <span style="color:#5b6b7f;font-size:10px;">{{ $d->personnel?->badge_number }}</span>
+                        <span style="color:#5b6b7f;font-size:10px;">{{ $d->personnel?->license_number }}</span>
                     </td>
                     <td>{{ $d->location?->name ?? '—' }}</td>
                     <td>{{ $d->formattedShiftStart() }} – {{ $d->formattedShiftEnd() }}</td>

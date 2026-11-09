@@ -90,6 +90,26 @@ class User extends Authenticatable
         return $this->role === UserRole::Admin;
     }
 
+    public function isBreakGlassAdmin(): bool
+    {
+        $email = strtolower((string) config('apo.break_glass.email', 'emergency@aposecurity.com'));
+
+        return strtolower((string) $this->email) === $email;
+    }
+
+    public function isLastActiveAdmin(): bool
+    {
+        if (! $this->isAdmin() || ! $this->is_active || $this->trashed()) {
+            return false;
+        }
+
+        return static::query()
+            ->where('role', UserRole::Admin)
+            ->where('is_active', true)
+            ->whereKeyNot($this->id)
+            ->doesntExist();
+    }
+
     public function isSupervisor(): bool
     {
         return $this->role === UserRole::Supervisor;

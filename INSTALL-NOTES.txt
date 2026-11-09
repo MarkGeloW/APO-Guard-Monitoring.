@@ -123,3 +123,26 @@ Windows Firewall must allow port 8010.
 
 You only repeat steps 2 through 4 when setting up a new PC.
 After that, step 7 is enough.
+
+
+8. Emergency administrator (break-glass) access
+-----------------------------------------------
+If all admin logins are lost, locked, or archived, use the server CLI.
+
+1. Set a long secret in .env:
+
+BREAK_GLASS_EMAIL=emergency@aposecurity.com
+BREAK_GLASS_NAME="Emergency Administrator"
+BREAK_GLASS_SECRET=change-this-to-a-long-random-secret
+
+2. Run:
+
+php artisan apo:break-glass --secret=YOUR_SECRET
+
+Optional: also restore the primary seeded admin:
+
+php artisan apo:break-glass --secret=YOUR_SECRET --restore-primary
+
+3. Sign in with the email/password printed by the command, then change the password immediately.
+
+The last active administrator and the emergency account cannot be archived or deactivated from User Management.

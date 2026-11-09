@@ -30,7 +30,7 @@ class DeploymentController extends Controller
                     $builder->whereHas('personnel', function ($personnelQuery) use ($search) {
                         $personnelQuery->where('first_name', 'like', "%{$search}%")
                             ->orWhere('last_name', 'like', "%{$search}%")
-                            ->orWhere('badge_number', 'like', "%{$search}%");
+                            ->orWhere('license_number', 'like', "%{$search}%");
                     })->orWhereHas('location', function ($locationQuery) use ($search) {
                         $locationQuery->where('name', 'like', "%{$search}%")
                             ->orWhere('address', 'like', "%{$search}%");
