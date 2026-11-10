@@ -104,20 +104,13 @@ class UserController extends Controller
             ]);
 
             if ($isGuard) {
-                $nameParts = preg_split('/\s+/', trim($validated['name']), 2) ?: ['Guard', ''];
                 $idPaths = SecurityPersonnel::storeIdPictures($request->file('id_pictures', []));
 
-                $personnel = SecurityPersonnel::create([
-                    'user_id' => $user->id,
-                    'license_number' => $validated['license_number'],
-                    'id_picture_paths' => $idPaths,
-                    'first_name' => $nameParts[0] ?: 'Guard',
-                    'last_name' => $nameParts[1] ?? '',
-                    'email' => $validated['email'],
-                    'phone' => $validated['phone'] ?? null,
-                    'date_hired' => $validated['date_hired'] ?? now()->toDateString(),
-                    'status' => 'active',
-                ]);
+                $personnel = $user->ensurePersonnelProfile(
+                    $validated['license_number'],
+                    $idPaths,
+                    $validated['date_hired'] ?? null,
+                );
 
                 if ($idPaths !== []) {
                     $moved = [];
@@ -136,11 +129,13 @@ class UserController extends Controller
             return $user;
         });
 
-        $message = $isGuard
-            ? 'Guard account created with license number and ID picture. Ask the guard to enroll their face in the mobile app before Face In / Face Out.'
-            : 'User created successfully.';
+        if ($isGuard) {
+            return redirect()
+                ->route('personnel.index')
+                ->with('success', 'Guard account created and added to Personnel. Enroll their face in the mobile app before Face In / Face Out or deployment.');
+        }
 
-        return redirect()->route('users.index')->with('success', $message);
+        return redirect()->route('users.index')->with('success', 'User created successfully.');
     }
 
     public function edit(User $user): View
@@ -186,6 +181,12 @@ class UserController extends Controller
 
         if (! $user->is_active) {
             $user->revokeAccess();
+        }
+
+        $user->refresh();
+
+        if ($user->isGuard() && $user->is_active && ! $user->trashed()) {
+            $user->ensurePersonnelProfile();
         }
 
         return redirect()->route('users.index')->with('success', 'User updated successfully.');

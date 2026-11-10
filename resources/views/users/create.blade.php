@@ -12,7 +12,7 @@
 
     <div class="mb-6">
         <h2 class="text-2xl font-extrabold uppercase tracking-wide text-slate-900">Add System User</h2>
-        <p class="mt-1 text-sm text-slate-500">Create a supervisor or guard login account. Administrator accounts are seeded and cannot be created here.</p>
+        <p class="mt-1 text-sm text-slate-500">Create a Supervisor or Security Guard login. Only Security Guard accounts appear in Personnel and Deployment.</p>
     </div>
 
     <div

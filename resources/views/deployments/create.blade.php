@@ -78,12 +78,22 @@
 
             <div>
                 <label class="{{ $labelClass }}">Security Guard</label>
-                <select name="security_personnel_id" required class="{{ $inputClass }}" x-model="personnelId">
-                    @foreach($personnel as $p)
-                        <option value="{{ $p->id }}" @selected($defaultPersonnelId == $p->id)>{{ $p->fullName() }} ({{ $p->license_number }})</option>
-                    @endforeach
-                </select>
+                @if($personnel->isEmpty())
+                    <div class="mt-1 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        No active guards with User Management accounts yet. Create a <strong>Security Guard</strong> account in User Management first.
+                        <a href="{{ route('users.create') }}" class="mt-2 block font-bold underline underline-offset-2">Create Guard account →</a>
+                    </div>
+                @else
+                    <select name="security_personnel_id" required class="{{ $inputClass }}" x-model="personnelId">
+                        @foreach($personnel as $p)
+                            <option value="{{ $p->id }}" @selected($defaultPersonnelId == $p->id)>
+                                {{ $p->fullName() }} ({{ $p->license_number }}){{ $p->hasFaceEnrolled() ? '' : ' — face not enrolled' }}
+                            </option>
+                        @endforeach
+                    </select>
+                @endif
                 @error('security_personnel_id')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                <p class="mt-1.5 text-xs leading-relaxed text-slate-500">Guards must enroll their face in the mobile app before a deployment can be saved.</p>
             </div>
 
             <div>

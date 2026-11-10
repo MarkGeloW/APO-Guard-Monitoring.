@@ -81,10 +81,13 @@
                 <label class="{{ $labelClass }}">Security Guard</label>
                 <select name="security_personnel_id" required class="{{ $inputClass }}" x-model="personnelId">
                     @foreach($personnel as $p)
-                        <option value="{{ $p->id }}" @selected($defaultPersonnelId == $p->id)>{{ $p->fullName() }} ({{ $p->license_number }})</option>
+                        <option value="{{ $p->id }}" @selected($defaultPersonnelId == $p->id)>
+                            {{ $p->fullName() }} ({{ $p->license_number }}){{ $p->hasFaceEnrolled() ? '' : ' — face not enrolled' }}
+                        </option>
                     @endforeach
                 </select>
                 @error('security_personnel_id')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                <p class="mt-1.5 text-xs leading-relaxed text-slate-500">Guards must enroll their face in the mobile app before a deployment can be saved.</p>
             </div>
 
             <div>

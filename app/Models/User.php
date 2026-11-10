@@ -75,6 +75,84 @@ class User extends Authenticatable
         return $this->hasOne(SecurityPersonnel::class);
     }
 
+    /**
+     * Guard logins that still need a personnel profile (ignores soft-deleted links).
+     *
+     * @return \Illuminate\Database\Eloquent\Builder<static>
+     */
+    public static function guardsWithoutPersonnelProfile()
+    {
+        $linkedIds = SecurityPersonnel::withTrashed()
+            ->whereNotNull('user_id')
+            ->pluck('user_id');
+
+        return static::query()
+            ->where('role', UserRole::Guard)
+            ->whereNotIn('id', $linkedIds);
+    }
+
+    /**
+     * Create personnel rows for any Guard accounts that were saved without a profile.
+     */
+    public static function syncMissingGuardPersonnelProfiles(): int
+    {
+        $created = 0;
+
+        static::guardsWithoutPersonnelProfile()
+            ->orderBy('id')
+            ->get()
+            ->each(function (self $user) use (&$created) {
+                $user->ensurePersonnelProfile();
+                $created++;
+            });
+
+        return $created;
+    }
+
+    /**
+     * Ensure this Guard account has an active personnel profile (used by Personnel / Deployment).
+     *
+     * @param  list<string>  $idPaths
+     */
+    public function ensurePersonnelProfile(?string $licenseNumber = null, array $idPaths = [], ?string $dateHired = null): SecurityPersonnel
+    {
+        $existing = SecurityPersonnel::withTrashed()->where('user_id', $this->id)->first();
+
+        if ($existing) {
+            if ($existing->trashed()) {
+                $existing->restore();
+            }
+
+            $existing->forceFill([
+                'status' => 'active',
+                'email' => $existing->email ?: $this->email,
+                'phone' => $existing->phone ?: $this->phone,
+            ])->saveQuietly();
+
+            return $existing->refresh();
+        }
+
+        $nameParts = preg_split('/\s+/', trim($this->name), 2) ?: ['Guard', ''];
+        $license = $licenseNumber ?: ('TEMP-'.$this->id);
+
+        while (SecurityPersonnel::withTrashed()->where('license_number', $license)->exists()) {
+            $license = 'TEMP-'.$this->id.'-'.Str::lower(Str::random(4));
+        }
+
+        return SecurityPersonnel::create([
+            'user_id' => $this->id,
+            'license_number' => $license,
+            'id_picture_paths' => $idPaths !== [] ? $idPaths : null,
+            'first_name' => $nameParts[0] ?: 'Guard',
+            'last_name' => $nameParts[1] ?? '',
+            'email' => $this->email,
+            'phone' => $this->phone,
+            'date_hired' => $dateHired ?? now()->toDateString(),
+            'status' => 'active',
+            'notes' => $licenseNumber ? null : 'Auto-linked from User Management. Update license number and ID pictures in Personnel.',
+        ]);
+    }
+
     public function assignedDeployments(): HasMany
     {
         return $this->hasMany(Deployment::class, 'assigned_by');

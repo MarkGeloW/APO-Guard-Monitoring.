@@ -18,6 +18,8 @@ class PersonnelController extends Controller
 {
     public function index(Request $request): Response
     {
+        User::syncMissingGuardPersonnelProfiles();
+
         $showArchived = $request->boolean('archived');
 
         $personnelQuery = $showArchived
@@ -57,20 +59,25 @@ class PersonnelController extends Controller
 
     public function create(): Response
     {
-        $guardUsers = User::where('role', UserRole::Guard)
-            ->whereDoesntHave('securityPersonnel')
+        User::syncMissingGuardPersonnelProfiles();
+
+        $guardUsers = User::guardsWithoutPersonnelProfile()
             ->orderBy('name')
             ->get(['id', 'name', 'email']);
 
+        $linkedGuardCount = User::where('role', UserRole::Guard)
+            ->whereNotIn('id', $guardUsers->pluck('id'))
+            ->count();
+
         return Inertia::render('Personnel/Create', [
             'guardUsers' => $guardUsers,
+            'linkedGuardCount' => $linkedGuardCount,
         ]);
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $availableGuardIds = User::where('role', UserRole::Guard)
-            ->whereDoesntHave('securityPersonnel')
+        $availableGuardIds = User::guardsWithoutPersonnelProfile()
             ->pluck('id')
             ->all();
 

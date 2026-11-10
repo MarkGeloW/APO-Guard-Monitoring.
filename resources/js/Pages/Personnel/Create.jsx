@@ -16,7 +16,7 @@ const inputClass =
     'mt-1 w-full rounded-xl border-slate-200 text-sm text-slate-700 shadow-sm focus:border-blue-400 focus:ring-blue-400';
 const labelClass = 'block text-[11px] font-bold uppercase tracking-wide text-slate-500';
 
-export default function Create({ guardUsers = [] }) {
+export default function Create({ guardUsers = [], linkedGuardCount = 0 }) {
     const { data, setData, post, processing, errors } = useForm({
         license_number: '',
         status: 'active',
@@ -39,6 +39,7 @@ export default function Create({ guardUsers = [] }) {
     };
 
     const hasGuardAccounts = guardUsers.length > 0;
+    const allGuardsAlreadyLinked = !hasGuardAccounts && linkedGuardCount > 0;
 
     return (
         <AdminLayout breadcrumb={breadcrumb}>
@@ -47,15 +48,42 @@ export default function Create({ guardUsers = [] }) {
                     Add Security Personnel
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                    Link a guard profile to an existing login account from User Management.
+                    Only needed for older Guard logins that were created without a personnel profile. New Security Guard
+                    accounts from User Management are added to Personnel automatically.
                 </p>
             </div>
 
-            {!hasGuardAccounts && (
+            {allGuardsAlreadyLinked && (
+                <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4 text-sm text-blue-900">
+                    <p className="font-bold">All Guard accounts are already in Personnel</p>
+                    <p className="mt-1">
+                        Creating a Security Guard in User Management also creates their personnel record. Open the
+                        Personnel list to view or edit them, or create a new Security Guard account if you need another
+                        person.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-3">
+                        <Link
+                            href="/personnel"
+                            className="inline-flex text-sm font-bold text-blue-950 underline underline-offset-2"
+                        >
+                            View Personnel list →
+                        </Link>
+                        <Link
+                            href="/users/create"
+                            className="inline-flex text-sm font-bold text-blue-950 underline underline-offset-2"
+                        >
+                            Create Security Guard account →
+                        </Link>
+                    </div>
+                </div>
+            )}
+
+            {!hasGuardAccounts && !allGuardsAlreadyLinked && (
                 <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
                     <p className="font-bold">No available guard accounts</p>
                     <p className="mt-1">
-                        Please create an account first in User Management before adding personnel.
+                        Create a Security Guard account in User Management first (not Supervisor). That also adds them
+                        to Personnel.
                     </p>
                     <Link
                         href="/users/create"

@@ -7,6 +7,7 @@ use App\Models\Deployment;
 use App\Models\Location;
 use App\Models\SecurityPersonnel;
 use App\Models\SystemNotification;
+use App\Models\User;
 use App\Http\Support\InertiaPageData;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -100,10 +101,13 @@ class DeploymentController extends Controller
 
     public function create(): View
     {
+        User::syncMissingGuardPersonnelProfiles();
+
         return view('deployments.create', [
             'personnel' => SecurityPersonnel::where('status', 'active')
                 ->whereNotNull('user_id')
                 ->orderBy('last_name')
+                ->orderBy('first_name')
                 ->get(),
             'locations' => Location::where('status', 'active')->orderBy('name')->get(),
         ]);
@@ -181,11 +185,14 @@ class DeploymentController extends Controller
 
     public function edit(Deployment $deployment): View
     {
+        User::syncMissingGuardPersonnelProfiles();
+
         return view('deployments.edit', [
             'deployment' => $deployment,
             'personnel' => SecurityPersonnel::where('status', 'active')
                 ->whereNotNull('user_id')
                 ->orderBy('last_name')
+                ->orderBy('first_name')
                 ->get(),
             'locations' => Location::where('status', 'active')->orderBy('name')->get(),
         ]);

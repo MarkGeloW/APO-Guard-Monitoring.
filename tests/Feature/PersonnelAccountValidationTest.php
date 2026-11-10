@@ -51,7 +51,7 @@ class PersonnelAccountValidationTest extends TestCase
                     UploadedFile::fake()->image('id-front.jpg', 800, 600),
                 ],
             ])
-            ->assertRedirect(route('users.index'));
+            ->assertRedirect(route('personnel.index'));
 
         $user = User::where('email', 'newguard@aposecurity.com')->firstOrFail();
         $personnel = SecurityPersonnel::where('user_id', $user->id)->firstOrFail();
