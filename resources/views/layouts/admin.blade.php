@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $title ?? config('app.name', 'APO Guard System') }}</title>
+    <link rel="icon" href="{{ asset('images/apo-logo.jpg') }}" type="image/jpeg">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700,800&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -15,11 +16,11 @@
         <aside class="hidden lg:flex lg:flex-col w-[250px] bg-[#162d4a] text-white shrink-0">
             <div class="px-5 py-6 border-b border-white/10">
                 <div class="flex items-center gap-3">
-                    <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10">
-                        <svg class="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                            <path d="M12 3 5.5 5.4v5.2c0 4.1 2.6 7.8 6.5 9.4 3.9-1.6 6.5-5.3 6.5-9.4V5.4L12 3Z"/>
-                        </svg>
-                    </div>
+                    <img
+                        src="{{ asset('images/apo-logo.jpg') }}"
+                        alt="APO Security Agency"
+                        class="h-11 w-11 rounded-full object-cover ring-1 ring-white/20 bg-white"
+                    >
                     <div>
                         <p class="text-sm font-extrabold uppercase tracking-[.18em]">APO Guard</p>
                         <p class="text-[10px] font-semibold uppercase tracking-[.28em] text-white/45">Monitoring System</p>
@@ -61,8 +62,11 @@
         <div x-show="mobileNav" x-cloak class="fixed inset-0 z-40 lg:hidden">
             <div class="absolute inset-0 bg-black/50" @click="mobileNav = false"></div>
             <aside class="absolute left-0 top-0 bottom-0 w-[250px] bg-[#162d4a] text-white flex flex-col">
-                <div class="px-5 py-5 border-b border-white/10 flex justify-between items-center">
-                    <p class="font-semibold text-sm">APO Guard</p>
+                <div class="px-5 py-5 border-b border-white/10 flex justify-between items-center gap-3">
+                    <div class="flex min-w-0 items-center gap-2">
+                        <img src="{{ asset('images/apo-logo.jpg') }}" alt="APO Security Agency" class="h-8 w-8 rounded-full object-cover bg-white">
+                        <p class="truncate font-semibold text-sm">APO Guard</p>
+                    </div>
                     <button type="button" @click="mobileNav = false" class="text-white/50 hover:text-white">&times;</button>
                 </div>
                 <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">

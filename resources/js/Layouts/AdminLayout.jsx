@@ -114,11 +114,11 @@ export default function AdminLayout({ header, breadcrumb, children }) {
         <>
             <div className="border-b border-white/10 px-5 py-6">
                 <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/10">
-                        <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                            <path d="M12 3 5.5 5.4v5.2c0 4.1 2.6 7.8 6.5 9.4 3.9-1.6 6.5-5.3 6.5-9.4V5.4L12 3Z" />
-                        </svg>
-                    </div>
+                    <img
+                        src="/images/apo-logo.jpg"
+                        alt="APO Security Agency"
+                        className="h-11 w-11 rounded-full object-cover ring-1 ring-white/20 bg-white"
+                    />
                     <div>
                         <p className="text-sm font-extrabold uppercase tracking-[.18em]">APO Guard</p>
                         <p className="text-[10px] font-semibold uppercase tracking-[.28em] text-white/45">Monitoring System</p>

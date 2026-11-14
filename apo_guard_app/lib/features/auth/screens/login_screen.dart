@@ -197,14 +197,25 @@ class _BrandHeader extends StatelessWidget {
     return Column(
       children: [
         Container(
-          width: 78,
-          height: 78,
+          width: 86,
+          height: 86,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: Colors.white.withValues(alpha: 0.12),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.28), width: 1.5),
+            color: Colors.white,
+            border: Border.all(color: Colors.white.withValues(alpha: 0.55), width: 2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.22),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
-          child: const Icon(Icons.shield, size: 38, color: Colors.white),
+          clipBehavior: Clip.antiAlias,
+          child: Image.asset(
+            'assets/images/apo-logo.jpg',
+            fit: BoxFit.cover,
+          ),
         ),
         const SizedBox(height: 18),
         const Text(

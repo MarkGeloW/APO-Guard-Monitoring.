@@ -21,11 +21,11 @@
 
                 <div class="relative z-10">
                     <div class="flex items-center gap-4">
-                        <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/12 shadow-lg ring-1 ring-white/15">
-                            <svg class="h-7 w-7 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                <path d="M12 3 5.5 5.4v5.2c0 4.1 2.6 7.8 6.5 9.4 3.9-1.6 6.5-5.3 6.5-9.4V5.4L12 3Z" />
-                            </svg>
-                        </div>
+                        <img
+                            src="{{ asset('images/apo-logo.jpg') }}"
+                            alt="APO Security Agency"
+                            class="h-14 w-14 rounded-full object-cover bg-white shadow-lg ring-1 ring-white/20"
+                        >
                         <div>
                             <p class="tracking-[.28em] text-xl font-extrabold uppercase">APO Guard</p>
                             <p class="mt-1 text-[10px] font-semibold uppercase tracking-[.38em] text-white/45">Monitoring System</p>
@@ -67,11 +67,11 @@
                 <div class="w-full max-w-[420px]">
                     <div class="mb-10 lg:hidden">
                         <div class="flex items-center gap-3">
-                            <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#183b63] text-white">
-                                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                    <path d="M12 3 5.5 5.4v5.2c0 4.1 2.6 7.8 6.5 9.4 3.9-1.6 6.5-5.3 6.5-9.4V5.4L12 3Z" />
-                                </svg>
-                            </div>
+                            <img
+                                src="{{ asset('images/apo-logo.jpg') }}"
+                                alt="APO Security Agency"
+                                class="h-11 w-11 rounded-full object-cover bg-white ring-1 ring-slate-200"
+                            >
                             <div>
                                 <p class="text-lg font-extrabold uppercase tracking-[.22em] text-slate-900">APO Guard</p>
                                 <p class="text-[10px] font-semibold uppercase tracking-[.28em] text-slate-400">Monitoring System</p>

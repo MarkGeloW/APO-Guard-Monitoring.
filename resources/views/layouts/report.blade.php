@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'APO Guard Report')</title>
+    <link rel="icon" href="{{ asset('images/apo-logo.jpg') }}" type="image/jpeg">
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=source-sans-3:400,600,700,800|libre-baskerville:700&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css'])
@@ -144,11 +145,11 @@
             <div class="letterhead px-6 pt-6 pb-4">
                 <div class="flex items-start justify-between gap-4">
                     <div class="flex items-center gap-3">
-                        <div class="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[var(--apo-navy)] bg-[var(--apo-navy)] text-white">
-                            <svg class="h-7 w-7" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24">
-                                <path d="M12 3 5.5 5.4v5.2c0 4.1 2.6 7.8 6.5 9.4 3.9-1.6 6.5-5.3 6.5-9.4V5.4L12 3Z"/>
-                            </svg>
-                        </div>
+                        <img
+                            src="{{ asset('images/apo-logo.jpg') }}"
+                            alt="APO Security Agency"
+                            class="h-14 w-14 rounded-full border-2 border-[var(--apo-navy)] object-cover bg-white"
+                        >
                         <div>
                             <p class="text-[11px] font-bold uppercase tracking-[.28em] text-[var(--apo-gold)]">Republic of the Philippines</p>
                             <p class="text-xl font-extrabold uppercase tracking-[.12em] text-[var(--apo-navy)]">APO Security Agency</p>

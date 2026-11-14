@@ -28,13 +28,16 @@
         .logo-box {
             width: 42px;
             height: 42px;
-            border: 2px solid #14233a;
-            background: #14233a;
-            color: #fff;
-            text-align: center;
-            line-height: 38px;
-            font-size: 16px;
-            font-weight: bold;
+            border: 1px solid #14233a;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #fff;
+        }
+        .logo-box img {
+            width: 42px;
+            height: 42px;
+            display: block;
+            object-fit: cover;
         }
         .agency {
             font-size: 9px;
@@ -194,7 +197,9 @@
         <table class="top">
             <tr>
                 <td style="width:48px; vertical-align:middle;">
-                    <div class="logo-box">A</div>
+                    <div class="logo-box">
+                        <img src="{{ public_path('images/apo-logo.jpg') }}" alt="APO Security Agency">
+                    </div>
                 </td>
                 <td style="vertical-align:middle; padding-left:8px;">
                     <p class="agency">Republic of the Philippines</p>
