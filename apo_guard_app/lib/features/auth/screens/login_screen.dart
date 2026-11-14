@@ -111,11 +111,11 @@ class _LoginScreenState extends State<LoginScreen>
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFF071833),
-                    Color(0xFF0A3A9A),
-                    Color(0xFF1B5FE8),
+                    AppColors.navy,
+                    AppColors.navyMid,
+                    AppColors.blueDark,
                   ],
-                  stops: [0.0, 0.45, 1.0],
+                  stops: [0.0, 0.55, 1.0],
                 ),
               ),
             ),
@@ -129,7 +129,7 @@ class _LoginScreenState extends State<LoginScreen>
               left: -70,
               child: _GlowCircle(
                 size: 180,
-                color: const Color(0xFF60A5FA).withValues(alpha: 0.18),
+                color: AppColors.blue.withValues(alpha: 0.22),
               ),
             ),
             SafeArea(
@@ -526,15 +526,15 @@ class _LoginCard extends StatelessWidget {
       prefixIcon: Icon(prefix, color: AppColors.muted),
       suffixIcon: suffix,
       filled: true,
-      fillColor: const Color(0xFFF7F9FC),
+      fillColor: AppColors.surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: const BorderSide(color: AppColors.border),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: const BorderSide(color: AppColors.border),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),

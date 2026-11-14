@@ -68,12 +68,12 @@ export default function Create({ guardUsers = [], linkedGuardCount = 0 }) {
                         >
                             View Personnel list →
                         </Link>
-                        <Link
+                        <a
                             href="/users/create"
                             className="inline-flex text-sm font-bold text-blue-950 underline underline-offset-2"
                         >
                             Create Security Guard account →
-                        </Link>
+                        </a>
                     </div>
                 </div>
             )}
@@ -85,12 +85,12 @@ export default function Create({ guardUsers = [], linkedGuardCount = 0 }) {
                         Create a Security Guard account in User Management first (not Supervisor). That also adds them
                         to Personnel.
                     </p>
-                    <Link
+                    <a
                         href="/users/create"
                         className="mt-3 inline-flex text-sm font-bold text-amber-900 underline underline-offset-2"
                     >
                         Go to User Management → Create Account
-                    </Link>
+                    </a>
                 </div>
             )}
 

@@ -1,22 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+/// Colors aligned with the APO Guard web admin UI
+/// (sidebar `#162d4a`, accent `blue-500`, page bg `#edf1f7`).
 class AppColors {
-  static const Color navy = Color(0xFF0B3A8C);
-  static const Color blue = Color(0xFF1E5BE0);
-  static const Color blueSoft = Color(0xFFE8F0FF);
-  static const Color bg = Color(0xFFF3F6FB);
-  static const Color text = Color(0xFF0F1B2D);
-  static const Color muted = Color(0xFF8A94A6);
-  static const Color green = Color(0xFF16A34A);
-  static const Color greenSoft = Color(0xFFE9F9EF);
-  static const Color greenBorder = Color(0xFFB7E8C7);
-  static const Color blueBorder = Color(0xFFC9DBFF);
-  static const Color red = Color(0xFFE11D48);
+  static const Color navy = Color(0xFF162D4A);
+  static const Color navyMid = Color(0xFF183B63);
+  static const Color blue = Color(0xFF3B82F6);
+  static const Color blueDark = Color(0xFF2563EB);
+  static const Color blueSoft = Color(0xFFEFF6FF);
+  static const Color bg = Color(0xFFEDF1F7);
+  static const Color surface = Color(0xFFF7F9FC);
+  static const Color text = Color(0xFF0F172A);
+  static const Color muted = Color(0xFF64748B);
+  static const Color green = Color(0xFF059669);
+  static const Color greenSoft = Color(0xFFECFDF5);
+  static const Color greenBorder = Color(0xFFA7F3D0);
+  static const Color blueBorder = Color(0xFFBFDBFE);
+  static const Color red = Color(0xFFDC2626);
   static const Color amber = Color(0xFFF59E0B);
-  static const Color amberSoft = Color(0xFFFFF8E8);
+  static const Color amberSoft = Color(0xFFFFFBEB);
   static const Color teal = Color(0xFF0D9488);
-  static const Color border = Color(0xFFE6EBF3);
+  static const Color border = Color(0xFFE2E8F0);
 }
 
 class AppRadius {
@@ -49,6 +54,9 @@ class AppTheme {
     final scheme = ColorScheme.fromSeed(
       seedColor: AppColors.blue,
       brightness: Brightness.light,
+      primary: AppColors.blue,
+      onPrimary: Colors.white,
+      secondary: AppColors.navy,
       surface: Colors.white,
     );
 
@@ -73,6 +81,8 @@ class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           elevation: 0,
+          backgroundColor: AppColors.blue,
+          foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
           textStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),

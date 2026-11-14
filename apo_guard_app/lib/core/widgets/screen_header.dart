@@ -30,7 +30,7 @@ class ScreenHeader extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0A3A9A), Color(0xFF1B5FE8), Color(0xFF2B78FF)],
+          colors: [AppColors.navy, AppColors.navyMid, AppColors.blueDark],
         ),
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(AppRadius.xl)),
       ),
@@ -39,8 +39,8 @@ class ScreenHeader extends StatelessWidget {
         children: [
           Text(
             eyebrow.toUpperCase(),
-            style: const TextStyle(
-              color: Color(0xFFD7E6FF),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.72),
               fontSize: 11,
               fontWeight: FontWeight.w800,
               letterSpacing: 1.4,
